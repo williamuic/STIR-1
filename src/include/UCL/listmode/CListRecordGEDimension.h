@@ -211,7 +211,7 @@ class CListRecordGEDimension : public CListRecordWithGatingInput, public CListTi
   {
     return dynamic_cast<CListRecordGEDimension const *>(&e2) != 0 &&
       raw[0] == static_cast<CListRecordGEDimension const &>(e2).raw[0] &&
-      (~this->is_event() || (raw[1] == static_cast<CListRecordGEDimension const &>(e2).raw[1]));
+      (this->is_event() || (raw[1] == static_cast<CListRecordGEDimension const &>(e2).raw[1]));
   }	    
 
   // time 
