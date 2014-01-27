@@ -1,6 +1,3 @@
-//
-// $Id: CListModeDataGEDimension.cxx,v 1.25 2012-01-09 09:04:55 kris Exp $
-//
 /*
     Copyright (C) 2013 University College London
 */
@@ -10,9 +7,6 @@
   \brief Implementation of class stir::CListModeDataGEDimension
     
   \author Kris Thielemans
-      
-  $Date: 2012-01-09 09:04:55 $
-  $Revision: 1.25 $
 */
 
 
@@ -107,12 +101,12 @@ CListModeData::SavedPosition
 CListModeDataGEDimension::
 save_get_position() 
 {
-  return current_lm_data_ptr->save_get_position();
+  return static_cast<SavedPosition>(current_lm_data_ptr->save_get_position());
 } 
 
 Succeeded
 CListModeDataGEDimension::
-set_get_position(const typename CListModeDataGEDimension::SavedPosition& pos)
+set_get_position(const CListModeDataGEDimension::SavedPosition& pos)
 {
   return
     current_lm_data_ptr->set_get_position(pos);
