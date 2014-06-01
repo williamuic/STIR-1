@@ -184,7 +184,7 @@ protected:
   //! \name parsing variables
   //{@
   //! frame definitions
-  string gate_definition_filename;
+  std::string gate_definition_filename;
 
 };
 

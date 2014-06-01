@@ -65,7 +65,7 @@ CListModeDataGEDimension::
 open_lm_file()
 {
   info(boost::format("CListModeDataGEDimension: opening file %1%") % listmode_filename);
-  shared_ptr<istream> stream_ptr(new std::fstream(listmode_filename.c_str(), std::ios::in | std::ios::binary));
+  shared_ptr<std::istream> stream_ptr(new std::fstream(listmode_filename.c_str(), std::ios::in | std::ios::binary));
   if (!(*stream_ptr))
     {
       return Succeeded::no;
