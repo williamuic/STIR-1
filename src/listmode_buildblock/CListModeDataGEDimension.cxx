@@ -12,6 +12,7 @@
 
 #include "UCL/listmode/CListModeDataGEDimension.h"
 #include "stir/Succeeded.h"
+#include "stir/ExamInfo.h"
 #include "stir/info.h"
 #include <boost/format.hpp>
 #include <iostream>
@@ -31,6 +32,7 @@ CListModeDataGEDimension(const std::string& listmode_filename)
   warning("CListModeDataGEDimension: "
 	  "Assuming this is GEDimension STE, but couldn't find scan start time etc");
   this->scanner_sptr.reset(new Scanner(Scanner::DiscoverySTE));
+  this->exam_info_sptr.reset(new ExamInfo);
 
   if (open_lm_file() == Succeeded::no)
     error(boost::format("CListModeDataGEDimension: error opening the first listmode file for filename %s") %
