@@ -230,7 +230,10 @@ process_data()
       // construct ExamInfo appropriate for a single projdata with this time frame
       ExamInfo this_frame_exam_info(*lm_data_ptr->get_exam_info_ptr());
       {
-        TimeFrameDefinitions this_time_frame_defs(frame_defs, current_frame_num);
+        std::vector<std::pair<double, double> > total_frame(1);
+        total_frame[0].first=frame_defs.get_start_time();
+        total_frame[0].second=frame_defs.get_end_time();
+        TimeFrameDefinitions this_time_frame_defs(total_frame);
         this_frame_exam_info.set_time_frame_definitions(this_time_frame_defs);
       }
 
