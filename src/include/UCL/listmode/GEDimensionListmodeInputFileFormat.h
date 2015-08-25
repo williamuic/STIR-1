@@ -31,7 +31,8 @@
 */
 #include "stir/IO/InputFileFormat.h"
 #include "UCL/listmode/CListModeDataGEDimension.h"
-
+#include "stir/warning.h"
+#include <boost/format.hpp>
 #include "stir/ByteOrder.h"
 #include <string>
 
@@ -71,8 +72,8 @@ public InputFileFormat<CListModeData >
     read_from_file(std::istream& input) const
   {
     // cannot do this 
-    warning("read_from_file for GEDimension listmode data with istream not implemented %s:%s. Sorry",
-	  __FILE__, __LINE__);
+    warning(boost::format("read_from_file for GEDimension listmode data with istream not implemented %s:%s. Sorry") %
+	  __FILE__ % __LINE__);
     return
       std::auto_ptr<data_type>
       (0);
