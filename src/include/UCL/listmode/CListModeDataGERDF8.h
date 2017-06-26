@@ -1,5 +1,5 @@
 //
-// $Id: CListModeDataGEDimension.h,v 1.12 2011-06-28 14:48:09 kris Exp $
+// $Id: CListModeDataGERDF8.h,v 1.12 2011-06-28 14:48:09 kris Exp $
 //
 /*
     Copyright (C) 2013 University College London
@@ -7,16 +7,16 @@
 /*!
   \file
   \ingroup listmode
-  \brief Declaration of class stir::CListModeDataGEDimension
+  \brief Declaration of class stir::CListModeDataGERDF8
     
   \author Kris Thielemans
 */
 
-#ifndef __UCL_listmode_CListModeDataGEDimension_H__
-#define __UCL_listmode_CListModeDataGEDimension_H__
+#ifndef __UCL_listmode_CListModeDataGERDF8_H__
+#define __UCL_listmode_CListModeDataGERDF8_H__
 
 #include "stir/listmode/CListModeData.h"
-#include "UCL/listmode/CListRecordGEDimension.h"
+#include "UCL/listmode/CListRecordGERDF8.h"
 #include "stir/IO/InputStreamWithRecords.h"
 #include "stir/shared_ptr.h"
 #include <iostream>
@@ -26,15 +26,15 @@
 START_NAMESPACE_STIR
 namespace UCL {
 
-//! A class that reads the listmode data for GE Dimension console scanners
+//! A class that reads the listmode data for GE RDF8 console scanners
 /*!  \ingroup listmode
-    This file format is used by GE Dimension console scanners (e.g. DSTE and RX).
+    This file format is used by GE RDF8 console scanners (e.g. 690 and 710).
 */
-class CListModeDataGEDimension : public CListModeData
+class CListModeDataGERDF8 : public CListModeData
 {
 public:
   //! Constructor taking a filename
-  CListModeDataGEDimension(const std::string& listmode_filename);
+  CListModeDataGERDF8(const std::string& listmode_filename);
 
   virtual std::string
     get_name() const;
@@ -60,12 +60,12 @@ public:
   virtual
     Succeeded set_get_position(const SavedPosition&);
 
-  //! returns \c true, as GEDimension listmode data stores delayed events (and prompts)
+  //! returns \c true, as GERDF8 listmode data stores delayed events (and prompts)
   /*! \todo this depends on the acquisition parameters */
   virtual bool has_delayeds() const { return true; }
 
 private:
-  typedef CListRecordGEDimension CListRecordT;
+  typedef CListRecordGERDF8 CListRecordT;
   shared_ptr<stir::ProjDataInfo> proj_data_info_sptr;
   std::string listmode_filename;
   shared_ptr<InputStreamWithRecords<CListRecordT, bool> > current_lm_data_ptr;

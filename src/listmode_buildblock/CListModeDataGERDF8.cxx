@@ -4,13 +4,13 @@
 /*!
   \file
   \ingroup listmode  
-  \brief Implementation of class stir::CListModeDataGEDimension
+  \brief Implementation of class stir::CListModeDataGERDF8
     
   \author Kris Thielemans
 */
 
 
-#include "UCL/listmode/CListModeDataGEDimension.h"
+#include "UCL/listmode/CListModeDataGERDF8.h"
 #include "stir/Succeeded.h"
 #include "stir/ExamInfo.h"
 #include "stir/info.h"
@@ -23,15 +23,15 @@ START_NAMESPACE_STIR
 namespace UCL {
 
 
-CListModeDataGEDimension::
-CListModeDataGEDimension(const std::string& listmode_filename)
+CListModeDataGERDF8::
+CListModeDataGERDF8(const std::string& listmode_filename)
   : listmode_filename(listmode_filename)    
 {
   // initialise scanner_ptr before calling open_lm_file, as it is used in that function
 
-  warning("CListModeDataGEDimension: "
-	  "Assuming this is GEDimension STE, but couldn't find scan start time etc");
-  this->scanner_sptr.reset(new Scanner(Scanner::DiscoverySTE));
+  warning("CListModeDataGERDF8: "
+	  "Assuming this is GERDF8 STE, but couldn't find scan start time etc");
+  this->scanner_sptr.reset(new Scanner(Scanner::Discovery690));
   this->exam_info_sptr.reset(new ExamInfo);
 
   this->proj_data_info_sptr.reset(
@@ -44,12 +44,12 @@ CListModeDataGEDimension(const std::string& listmode_filename)
 				    /*tof_mash_factor = */  1));
 
   if (open_lm_file() == Succeeded::no)
-    error(boost::format("CListModeDataGEDimension: error opening the first listmode file for filename %s") %
+    error(boost::format("CListModeDataGERDF8: error opening the first listmode file for filename %s") %
 	  listmode_filename);
 }
 
 std::string
-CListModeDataGEDimension::
+CListModeDataGERDF8::
 get_name() const
 {
   return listmode_filename;
@@ -57,14 +57,14 @@ get_name() const
 
 
 shared_ptr<stir::ProjDataInfo> 
-CListModeDataGEDimension::
+CListModeDataGERDF8::
 get_proj_data_info_sptr() const
 {
   return this->proj_data_info_sptr;
 }
 
 std::time_t 
-CListModeDataGEDimension::
+CListModeDataGERDF8::
 get_scan_start_time_in_secs_since_1970() const
 {
   return std::time_t(-1); // TODO
@@ -72,7 +72,7 @@ get_scan_start_time_in_secs_since_1970() const
 
 
 shared_ptr <CListRecord> 
-CListModeDataGEDimension::
+CListModeDataGERDF8::
 get_empty_record_sptr() const
 {
   shared_ptr<CListRecord> sptr(new CListRecordT);
@@ -80,26 +80,26 @@ get_empty_record_sptr() const
 }
 
 Succeeded
-CListModeDataGEDimension::
+CListModeDataGERDF8::
 open_lm_file()
 {
-  info(boost::format("CListModeDataGEDimension: opening file %1%") % listmode_filename);
+  info(boost::format("CListModeDataGERDF8: opening file %1%") % listmode_filename);
   shared_ptr<std::istream> stream_ptr(new std::fstream(listmode_filename.c_str(), std::ios::in | std::ios::binary));
   if (!(*stream_ptr))
     {
       return Succeeded::no;
     }
-  stream_ptr->seekg(71168); // TODO get offset from RDF
+  stream_ptr->seekg(21907456); // TODO get offset from RDF
   current_lm_data_ptr.reset(
                             new InputStreamWithRecords<CListRecordT, bool>(stream_ptr, 
-                                                                           4, 8,
+                                                                           4, 16,
                                                                            ByteOrder::little_endian != ByteOrder::get_native_order()));
 
   return Succeeded::yes;
 }
 
 Succeeded
-CListModeDataGEDimension::
+CListModeDataGERDF8::
 get_next_record(CListRecord& record_of_general_type) const
 {
   CListRecordT& record = static_cast<CListRecordT&>(record_of_general_type);
@@ -109,7 +109,7 @@ get_next_record(CListRecord& record_of_general_type) const
 
 
 Succeeded
-CListModeDataGEDimension::
+CListModeDataGERDF8::
 reset()
 {
   return current_lm_data_ptr->reset();
@@ -117,15 +117,15 @@ reset()
 
 
 CListModeData::SavedPosition
-CListModeDataGEDimension::
+CListModeDataGERDF8::
 save_get_position() 
 {
   return static_cast<SavedPosition>(current_lm_data_ptr->save_get_position());
 } 
 
 Succeeded
-CListModeDataGEDimension::
-set_get_position(const CListModeDataGEDimension::SavedPosition& pos)
+CListModeDataGERDF8::
+set_get_position(const CListModeDataGERDF8::SavedPosition& pos)
 {
   return
     current_lm_data_ptr->set_get_position(pos);
