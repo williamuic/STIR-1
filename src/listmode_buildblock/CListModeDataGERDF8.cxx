@@ -17,6 +17,12 @@
 #include <boost/format.hpp>
 #include <iostream>
 #include <fstream>
+#include "GEextra.h" 
+#include "GEtypes.h"
+#include "GEsysConstants.h"
+#include "GElmUtilsPET.h" /* values updated for new event definitions */
+#include "GEunlisterPET.h"
+#include "GErdfUtils.h" /* for GE_set_error_string */
 
 START_NAMESPACE_STIR
 
@@ -89,7 +95,18 @@ open_lm_file()
     {
       return Succeeded::no;
     }
-  stream_ptr->seekg(21907456); // TODO get offset from RDF
+  scannerParams scannerParams;
+  off_t listStartOffset;
+  
+  if (GEgetListOffsetAndScannerParams( listmode_filename.c_str(),
+				       &listStartOffset,
+				       &scannerParams ) != SYS_OK )
+    { 
+      warning( "unable to get start of list file offset" );
+      return Succeeded::no; 
+    }
+
+  stream_ptr->seekg(listStartOffset);
   current_lm_data_ptr.reset(
                             new InputStreamWithRecords<CListRecordT, bool>(stream_ptr, 
                                                                            4, 16,
