@@ -46,7 +46,7 @@ bool RDF8Base::ReadOffsets(const fs::path inFilePath)
   else
     return false;
 
-  BOOST_LOG_TRIVIAL(debug) << "BOM = " << BOM;
+  BOOST_LOG_TRIVIAL(debug) << "BOM = " << std::hex << BOM;
 
   if (BOM != 0x0000FEFF)
   {
@@ -309,7 +309,7 @@ bool CRDF8EXAM::GetField(const std::string sid, boost::any &data) const
 
   if (_dict == nullptr)
   {
-    BOOST_LOG_TRIVIAL(error) << "DICOM dictionary appears to be NULL!";
+    BOOST_LOG_TRIVIAL(error) << "RDF8 dictionary appears to be NULL!";
     return false;
   }
 
@@ -700,15 +700,36 @@ bool CRDF8CONFIG::Read(const fs::path inFilePath)
 
   fin.close();
 
+  return this->populateDictionary();
+}
+
+bool CRDF8CONFIG::populateDictionary(){
+
+  this->_dict = std::unique_ptr<Dictionary>(new Dictionary);
+  //C++17 std::make_unique
+
+  if (this->_dict == nullptr) {
+    BOOST_LOG_TRIVIAL(error) << "CRDF8CONFIG::populateDictionary - Cannot allocate RDF8 config dictionary!";
+    return false;
+  }
+
+  _dict->insert(DictionaryItem("VERSION_NUMBER", this->GetVersionNumber()));
+  _dict->insert(DictionaryItem("IS_COMPLETE_RDF", _RDFComplete));
+  _dict->insert(DictionaryItem("DEADTIME_VERSION", _deadTimeVersion));
+  _dict->insert(DictionaryItem("SINGLES_VERSION", _singlesVersion));
+  _dict->insert(DictionaryItem("IS_LISTMODE", _isListFile));
+  _dict->insert(DictionaryItem("FILE_SIZE", _fileSizeInBytes));
+  
   return true;
 }
+
 
 bool CRDF8CONFIG::GetField(const std::string sid, boost::any &data) const
 {
 
   if (_dict == nullptr)
   {
-    BOOST_LOG_TRIVIAL(error) << "DICOM dictionary appears to be NULL!";
+    BOOST_LOG_TRIVIAL(error) << "RDF8 dictionary appears to be NULL!";
     return false;
   }
 

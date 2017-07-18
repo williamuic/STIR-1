@@ -137,8 +137,6 @@ public:
   bool SetField(const std::string, const boost::any data){return false;}; //TODO: Implement this
   bool Write(const boost::filesystem::path path){return false;}; //TODO: Implement this
 
-  float GetVersionNumber();
-
   ~CRDF8CONFIG(){};
 
 protected:
@@ -151,6 +149,9 @@ protected:
   uint32_t _isListFile;
   uint64_t _fileSizeInBytes;
   uint32_t _spares[2];
+
+  bool populateDictionary();
+  float GetVersionNumber();
 
   //Print info for debugging
   friend std::ostream &operator<<(std::ostream &os, const CRDF8CONFIG &rdf);
