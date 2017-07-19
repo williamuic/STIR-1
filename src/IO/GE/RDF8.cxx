@@ -23,6 +23,12 @@
 
 #include "RDF8.h"
 
+#include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/gregorian/conversion.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+using namespace boost::gregorian;
+
 namespace nmtools
 {
 namespace IO
@@ -300,6 +306,30 @@ bool CRDF8EXAM::Read(const fs::path inFilePath)
   fin.read(reinterpret_cast<char *>(&_spares), sizeof(uint32_t) * 9);
 
   fin.close();
+
+  return populateDictionary();
+}
+
+bool CRDF8EXAM::populateDictionary(){
+
+  this->_dict = std::unique_ptr<Dictionary>(new Dictionary);
+  //C++17 std::make_unique
+
+  if (this->_dict == nullptr) {
+    BOOST_LOG_TRIVIAL(error) << "CRDF8EXAM::populateDictionary - Cannot allocate DICOM dictionary!";
+    return false;
+  }
+
+  _dict->insert(DictionaryItem("PATIENT_NAME", _patientName));
+  _dict->insert(DictionaryItem("PATIENT_ID", _patientID));
+  _dict->insert(DictionaryItem("PATIENT_DOB", this->getPatientDOB()));
+  _dict->insert(DictionaryItem("STUDY_SCAN_DATE", this->getStudyScanDate()));
+  _dict->insert(DictionaryItem("STUDY_SCAN_TIME", this->getStudyScanTime())); //should probably be using acq_stats.scanStartTime.
+  _dict->insert(DictionaryItem("SERIES_DESCRIPTION", _scanDescription));
+  //_dict->insert(DictionaryItem("IMAGE_TYPE", _imageType));
+  _dict->insert(DictionaryItem("MANUFACTURER", _manufacturer));
+  _dict->insert(DictionaryItem("MODALITY_TYPE", _modality));
+  _dict->insert(DictionaryItem("MODEL_NAME", _scannerDesc));
 
   return true;
 }
@@ -770,6 +800,8 @@ float CRDF8CONFIG::GetVersionNumber()
 std::ostream &operator<<(std::ostream &os, const CRDF8CONFIG &rdf)
 {
   //Print out info for debugging purposes.
+
+  os << "Date test:\tDate: " << getGEDate(dt) << "\t Time: " << getGETime(dt);
   os << std::endl;
   os << "\t"
      << "Major version = " << rdf._majorVersion << std::endl;
@@ -790,6 +822,39 @@ std::ostream &operator<<(std::ostream &os, const CRDF8CONFIG &rdf)
 
   return os;
 }
+
+std::string getGEDate(std::string date){
+//Extracts date from RDF date/time field.
+
+  if (date.length() != 17) {
+    //Not in YYYYMMDDHHMMSS.ff
+    return "NODATE";
+  }
+
+  boost::gregorian::date dateOnly;
+
+  try {
+    dateOnly = from_undelimited_string(date.substr(0,8));
+  }
+  catch (std::out_of_range) {
+    return "NODATE";
+  }
+
+  return to_iso_extended_string(dateOnly);
+}
+
+std::string getGETime(std::string time){
+//Extracts time from RDF date/time field.
+
+  if (time.length() != 17) {
+    //Not in YYYYMMDDHHMMSS.ff
+    return "NOTIME";
+  }
+
+  std::string timeOnly = time.substr(8,6);
+  return timeOnly;
+}
+
 } //namespace ge
 } //namespace IO
 } //namespace nmtools
