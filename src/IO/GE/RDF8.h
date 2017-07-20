@@ -27,6 +27,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <typeinfo>
 
 //BOOST
 #include <boost/cstdfloat.hpp>
@@ -105,6 +106,9 @@ struct RDF8HDROFFSETS
   uint32_t detModuleSignatureOffset;
   uint32_t spares[2];
 };
+
+std::string getGEDate(std::string date);
+std::string getGETime(std::string time);
 
 class RDF8Base
 {
@@ -239,8 +243,46 @@ protected:
   uint32_t _isotopeHasPromptGamma;
   uint32_t _spares[9];
 
+  bool populateDictionary();
+
+  const std::string getPatientDOB() const { return getGEDate(_patientBirthdate); };
+  const std::string getStudyScanDate() const { return getGEDate(_measDateTime); };
+  const std::string getStudyScanTime() const { return getGETime(_measDateTime); };
+
   //Print info for debugging
   friend std::ostream &operator<<(std::ostream &os, const CRDF8EXAM &rdf);
+};
+
+class CRDF8ACQ : public RDF8Base, IRawFileIO
+{
+public:
+
+  bool Read(const fs::path);
+  bool GetField(const std::string sid, boost::any &data) const;
+
+protected:
+  uint32_t _termCondition;
+  uint32_t _totalPrompts;
+  uint32_t _totalDelays;
+  uint32_t _acceptedTriggers;
+  uint32_t _rejectedTriggers;
+  uint32_t _scanStartTime;
+  uint32_t _frameStartTime;
+  uint32_t _frameDuration;
+  std::string _frameID;
+  uint32_t _binNumber;
+  std::unique_ptr<std::vector<uint32_t>> _accumBinDuration;
+  uint32_t _totalPromptsMs;
+  uint32_t _totalDelaysMs;
+  uint32_t _sorterFilteredEvtsLS;
+  uint32_t _sorterFilteredEvtsMS;
+  uint32_t _badCoincStreamEvts;
+  uint32_t _frameNumber;
+  uint32_t _isRejectBin;
+  uint32_t _frameStartCoincTStamp;
+  uint32_t _readyToScanUTC;
+  uint32_t spares[5];
+  
 };
 
 class RDF8Info : public IRawFileIO {

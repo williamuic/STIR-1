@@ -68,6 +68,10 @@ bool RDF8Base::ReadOffsets(const fs::path inFilePath)
 bool CRDF8EXAM::Read(const fs::path inFilePath)
 {
   //Tries to read the exam portion of RDF8 file.
+  int status = 0;
+  char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
+  BOOST_LOG_TRIVIAL(debug) << demangled << " - Reading...";
+  free(demangled);
 
   //TODO: Do file checking here. E.g. big or little endian.
   if (!ReadOffsets(inFilePath))
@@ -316,7 +320,10 @@ bool CRDF8EXAM::populateDictionary(){
   //C++17 std::make_unique
 
   if (this->_dict == nullptr) {
-    BOOST_LOG_TRIVIAL(error) << "CRDF8EXAM::populateDictionary - Cannot allocate DICOM dictionary!";
+    int status = 0;
+    char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
+    BOOST_LOG_TRIVIAL(error) << demangled << "::populateDictionary - Cannot allocate RDF8 dictionary!";
+    free(demangled);
     return false;
   }
 
@@ -339,7 +346,7 @@ bool CRDF8EXAM::GetField(const std::string sid, boost::any &data) const
 
   if (_dict == nullptr)
   {
-    BOOST_LOG_TRIVIAL(error) << "RDF8 dictionary appears to be NULL!";
+    BOOST_LOG_TRIVIAL(error) << "RDF8 Exam dictionary appears to be NULL!";
     return false;
   }
 
@@ -696,6 +703,10 @@ std::ostream &operator<<(std::ostream &os, const CRDF8EXAM &rdf)
 bool CRDF8CONFIG::Read(const fs::path inFilePath)
 {
   //Tries to read the config part of an RDF8 file.
+  int status = 0;
+  char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
+  BOOST_LOG_TRIVIAL(debug) << demangled << " - Reading...";
+  free(demangled);
 
   if (!ReadOffsets(inFilePath))
     return false;
@@ -739,7 +750,10 @@ bool CRDF8CONFIG::populateDictionary(){
   //C++17 std::make_unique
 
   if (this->_dict == nullptr) {
-    BOOST_LOG_TRIVIAL(error) << "CRDF8CONFIG::populateDictionary - Cannot allocate RDF8 config dictionary!";
+    int status = 0;
+    char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
+    BOOST_LOG_TRIVIAL(error) << demangled << "::populateDictionary - Cannot allocate RDF8 dictionary!";
+    free(demangled);
     return false;
   }
 
@@ -759,7 +773,10 @@ bool CRDF8CONFIG::GetField(const std::string sid, boost::any &data) const
 
   if (_dict == nullptr)
   {
-    BOOST_LOG_TRIVIAL(error) << "RDF8 dictionary appears to be NULL!";
+    int status = 0;
+    char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
+    BOOST_LOG_TRIVIAL(error) << demangled << " - Dictionary appears to be NULL!";
+    free(demangled);
     return false;
   }
 
@@ -801,7 +818,6 @@ std::ostream &operator<<(std::ostream &os, const CRDF8CONFIG &rdf)
 {
   //Print out info for debugging purposes.
 
-  os << "Date test:\tDate: " << getGEDate(dt) << "\t Time: " << getGETime(dt);
   os << std::endl;
   os << "\t"
      << "Major version = " << rdf._majorVersion << std::endl;
@@ -822,6 +838,32 @@ std::ostream &operator<<(std::ostream &os, const CRDF8CONFIG &rdf)
 
   return os;
 }
+
+bool CRDF8ACQ::GetField(const std::string sid, boost::any &data) const
+{
+
+  if (_dict == nullptr)
+  {
+    int status = 0;
+    char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
+    BOOST_LOG_TRIVIAL(error) << demangled << " - Dictionary appears to be NULL!";
+    free(demangled);
+    return false;
+  }
+
+  try
+  {
+    data = _dict->at(sid);
+  }
+  catch (std::out_of_range &e)
+  {
+    BOOST_LOG_TRIVIAL(error) << e.what();
+    BOOST_LOG_TRIVIAL(warning) << sid << " not found!";
+  }
+
+  return true;
+}
+
 
 std::string getGEDate(std::string date){
 //Extracts date from RDF date/time field.
@@ -845,6 +887,7 @@ std::string getGEDate(std::string date){
 
 std::string getGETime(std::string time){
 //Extracts time from RDF date/time field.
+//TODO: Actually check time validity.
 
   if (time.length() != 17) {
     //Not in YYYYMMDDHHMMSS.ff
