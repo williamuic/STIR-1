@@ -68,20 +68,19 @@ public InputFileFormat<CListModeData >
     return word==65279;
   }
  public:
-  virtual std::auto_ptr<data_type>
+  virtual unique_ptr<data_type>
     read_from_file(std::istream& input) const
   {
     // cannot do this 
     warning(boost::format("read_from_file for GERDF8 listmode data with istream not implemented %s:%s. Sorry") %
 	  __FILE__ % __LINE__);
     return
-      std::auto_ptr<data_type>
-      (0);
+      unique_ptr<data_type>();
   }
-  virtual std::auto_ptr<data_type>
+  virtual unique_ptr<data_type>
     read_from_file(const std::string& filename) const
   {	
-    return std::auto_ptr<data_type>(new CListModeDataGERDF8(filename)); 
+    return unique_ptr<data_type>(new CListModeDataGERDF8(filename)); 
   }
 };
 
