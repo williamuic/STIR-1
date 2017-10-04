@@ -178,8 +178,8 @@ class CListRecordGEDimension : public CListRecordWithGatingInput, public CListTi
   typedef CListGatingDataGEDimension GatingType;
 
  public:  
-  CListRecordGEDimension() :
-  CListEventCylindricalScannerWithDiscreteDetectors(shared_ptr<Scanner>(new Scanner(Scanner::DiscoverySTE)))
+  CListRecordGEDimension(const shared_ptr<ProjDataInfo>& proj_data_info_sptr) :
+  CListEventCylindricalScannerWithDiscreteDetectors(proj_data_info_sptr)
     {}
 
   bool is_time() const

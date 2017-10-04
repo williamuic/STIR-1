@@ -81,7 +81,7 @@ shared_ptr <CListRecord>
 CListModeDataGERDF8::
 get_empty_record_sptr() const
 {
-  shared_ptr<CListRecord> sptr(new CListRecordT);
+  shared_ptr<CListRecord> sptr(new CListRecordT(this->proj_data_info_sptr));
   return sptr;
 }
 

@@ -223,8 +223,8 @@ class CListRecordGERDF8 : public CListRecord, public CListTime, // public CListG
   //typedef CListGatingDataGERDF8 GatingType;
 
  public:  
-  CListRecordGERDF8() :
-  CListEventCylindricalScannerWithDiscreteDetectors(shared_ptr<Scanner>(new Scanner(Scanner::Discovery690)))
+  CListRecordGERDF8(const shared_ptr<ProjDataInfo>& proj_data_info_sptr) :
+  CListEventCylindricalScannerWithDiscreteDetectors(proj_data_info_sptr)
     {}
 
   bool is_time() const
