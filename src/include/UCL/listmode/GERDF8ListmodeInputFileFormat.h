@@ -1,10 +1,7 @@
-//
-// $Id: GERDF8ListmodeInputFileFormat.h,v 1.1 2011-06-28 14:46:08 kris Exp $
-//
 #ifndef __UCL_IO_GERDF8ListmodeInputFileFormat_h__
 #define __UCL_IO_GERDF8ListmodeInputFileFormat_h__
 /*
-    Copyright (C) 2006- $Date: 2011-06-28 14:46:08 $, Hammersmith Imanet Ltd
+    Copyright (C) 2017, University College London
     This file is part of STIR.
     This file is free software; you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
@@ -22,12 +19,10 @@
 
   \file
   \ingroup GERDF8
-  \brief Declaration of class stir::ecat::ecat7::GERDF8ListmodeInputFileFormat
+  \brief Declaration of class stir::UCL::GERDF8ListmodeInputFileFormat
 
   \author Kris Thielemans
 
-  $Date: 2011-06-28 14:46:08 $
-  $Revision: 1.1 $
 */
 #include "stir/IO/InputFileFormat.h"
 #include "UCL/listmode/CListModeDataGERDF8.h"
@@ -68,20 +63,19 @@ public InputFileFormat<CListModeData >
     return word==65279;
   }
  public:
-  virtual std::auto_ptr<data_type>
+  virtual unique_ptr<data_type>
     read_from_file(std::istream& input) const
   {
     // cannot do this 
     warning(boost::format("read_from_file for GERDF8 listmode data with istream not implemented %s:%s. Sorry") %
 	  __FILE__ % __LINE__);
     return
-      std::auto_ptr<data_type>
-      (0);
+      unique_ptr<data_type>();
   }
-  virtual std::auto_ptr<data_type>
+  virtual unique_ptr<data_type>
     read_from_file(const std::string& filename) const
   {	
-    return std::auto_ptr<data_type>(new CListModeDataGERDF8(filename)); 
+    return unique_ptr<data_type>(new CListModeDataGERDF8(filename)); 
   }
 };
 
