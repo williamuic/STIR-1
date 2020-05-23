@@ -39,10 +39,10 @@
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "dicom/DicomTools.h"
-#include "common/IRawFileIO.h"
+#include "inm/dicom/Dicom.hpp"
+#include "inm/io/IOBase.h"
 
-namespace dcm = nmtools::IO::dicom;
+namespace dcm = inm;
 namespace fs = boost::filesystem;
 
 #ifndef float32_t
@@ -130,7 +130,7 @@ protected:
 
 };
 
-class CRDF8CONFIG : public RDF8Base, IRawFileIO
+class CRDF8CONFIG : public RDF8Base, inm::IOBase
 {
 
 public:
@@ -161,7 +161,7 @@ protected:
   friend std::ostream &operator<<(std::ostream &os, const CRDF8CONFIG &rdf);
 };
 
-class CRDF8EXAM : public RDF8Base, IRawFileIO
+class CRDF8EXAM : public RDF8Base, inm::IOBase
 {
 
 public:
@@ -253,7 +253,7 @@ protected:
   friend std::ostream &operator<<(std::ostream &os, const CRDF8EXAM &rdf);
 };
 
-class CRDF8ACQ : public RDF8Base, IRawFileIO
+class CRDF8ACQ : public RDF8Base, inm::IOBase
 {
 public:
 
@@ -285,7 +285,7 @@ protected:
   
 };
 
-class RDF8Info : public IRawFileIO {
+class RDF8Info : public inm::IOBase {
 
 private:
   std::unique_ptr<CRDF8CONFIG> config;
