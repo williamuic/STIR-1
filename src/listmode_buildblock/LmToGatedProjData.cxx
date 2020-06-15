@@ -223,8 +223,8 @@ process_data()
   
  VectorWithOffset<CListModeData::SavedPosition> 
    frame_start_positions(1, frame_defs.get_num_frames());
- shared_ptr <CListRecord> record_sptr = lm_data_ptr->get_empty_record_sptr();
- CListRecord& record = *record_sptr;
+ shared_ptr <ListRecord> record_sptr = lm_data_ptr->get_empty_record_sptr();
+ CListRecord& record = dynamic_cast<CListRecord&>(*record_sptr);
 
      //*********** open output file
       // construct ExamInfo appropriate for a single projdata with this time frame

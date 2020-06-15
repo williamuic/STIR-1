@@ -46,7 +46,7 @@ namespace UCL {
   \ingroup listmode
 */
 class GEDimensionListmodeInputFileFormat :
-public InputFileFormat<CListModeData >
+public InputFileFormat<ListModeData >
 {
  public:
   virtual const std::string

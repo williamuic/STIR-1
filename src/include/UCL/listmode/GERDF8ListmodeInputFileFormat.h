@@ -41,7 +41,7 @@ namespace UCL {
   \ingroup listmode
 */
 class GERDF8ListmodeInputFileFormat :
-public InputFileFormat<CListModeData >
+public InputFileFormat<ListModeData >
 {
  public:
   virtual const std::string

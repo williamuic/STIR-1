@@ -1,6 +1,3 @@
-//
-// $Id: CListRecordECAT962.h,v 1.8 2011-12-31 16:42:45 kris Exp $
-//
 /*
     Copyright (C) 2003-2011 Hammersmith Imanet Ltd (CListRecordECAT.h)
     Copyright (C) 2013 University College London (major mods for GE Dimension data)
@@ -13,16 +10,15 @@
   This file is based on GE proprietary information and can therefore not be distributed outside UCL
   without approval from GE.
     
-  \author Kris Thielemans
-      
-  $Date: 2011-12-31 16:42:45 $
-  $Revision: 1.8 $
+  \author Kris Thielemans      
 */
 
 #ifndef __UCL_listmode_CListRecordGEDimension_H__
 #define __UCL_listmode_CListRecordGEDimension_H__
 
 #include "stir/listmode/CListRecord.h"
+#include "stir/listmode/ListGatingInput.h"
+#include "stir/listmode/ListTime.h"
 #include "stir/listmode/CListEventCylindricalScannerWithDiscreteDetectors.h"
 #include "stir/Succeeded.h"
 #include "stir/ByteOrder.h"
@@ -170,7 +166,7 @@ private:
 
   \todo Currently we always assume the data is from a DSTE. We should really read this from the RDF header.
 */
-class CListRecordGEDimension : public CListRecordWithGatingInput, public CListTime, public CListGatingInput,
+class CListRecordGEDimension : public CListRecordWithGatingInput, public ListTime, public ListGatingInput,
     public  CListEventCylindricalScannerWithDiscreteDetectors
 {
   typedef CListEventDataGEDimension DataType;
@@ -198,13 +194,13 @@ class CListRecordGEDimension : public CListRecordWithGatingInput, public CListTi
     { return *this; }
   virtual const CListEvent&  event() const
     { return *this; }
-  virtual CListTime&   time()
+  virtual ListTime&   time()
     { return *this; }
-  virtual const CListTime&   time() const
+  virtual const ListTime&   time() const
     { return *this; }
-  virtual CListGatingInput&  gating_input()
+  virtual ListGatingInput&  gating_input()
     { return *this; }
-  virtual const CListGatingInput&  gating_input() const
+  virtual const ListGatingInput&  gating_input() const
   { return *this; }
 
   bool operator==(const CListRecord& e2) const
