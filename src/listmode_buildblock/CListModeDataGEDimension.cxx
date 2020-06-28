@@ -56,7 +56,7 @@ get_name() const
 }
 
 
-shared_ptr<stir::ProjDataInfo> 
+shared_ptr<const stir::ProjDataInfo> 
 CListModeDataGEDimension::
 get_proj_data_info_sptr() const
 {

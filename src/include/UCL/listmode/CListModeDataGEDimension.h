@@ -39,7 +39,7 @@ public:
   virtual std::string
     get_name() const;
 
-  virtual shared_ptr<stir::ProjDataInfo>     
+  virtual shared_ptr<const stir::ProjDataInfo>     
     get_proj_data_info_sptr() const;
 
   virtual
