@@ -55,8 +55,11 @@ get_name() const
   return listmode_filename;
 }
 
-
-shared_ptr<const stir::ProjDataInfo> 
+#if STIR_VERSION < 050000
+shared_ptr<stir::ProjDataInfo>
+#else
+shared_ptr<const stir::ProjDataInfo>
+#endif
 CListModeDataGEDimension::
 get_proj_data_info_sptr() const
 {
