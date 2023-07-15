@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2013 University College London
+    Copyright (C) 2013, 2014, 2018, 2020, 2021, 2023, University College London
 */
 /*!
   \file
@@ -14,6 +14,8 @@
 #include "stir/Succeeded.h"
 #include "stir/ExamInfo.h"
 #include "stir/info.h"
+#include "stir/error.h"
+#include "stir/ByteOrder.h"
 #include <boost/format.hpp>
 #include <iostream>
 #include <fstream>
