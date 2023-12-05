@@ -223,12 +223,12 @@ process_data()
   
  VectorWithOffset<CListModeData::SavedPosition> 
    frame_start_positions(1, frame_defs.get_num_frames());
- shared_ptr <CListRecord> record_sptr = lm_data_ptr->get_empty_record_sptr();
- CListRecord& record = *record_sptr;
+ shared_ptr <ListRecord> record_sptr = lm_data_ptr->get_empty_record_sptr();
+ CListRecord& record = dynamic_cast<CListRecord&>(*record_sptr);
 
      //*********** open output file
       // construct ExamInfo appropriate for a single projdata with this time frame
-      ExamInfo this_frame_exam_info(*lm_data_ptr->get_exam_info_ptr());
+      ExamInfo this_frame_exam_info(*lm_data_ptr->get_exam_info_sptr());
       {
         std::vector<std::pair<double, double> > total_frame(1);
         total_frame[0].first=frame_defs.get_start_time();
@@ -264,7 +264,7 @@ process_data()
 	     min( proj_data_ptr->get_max_segment_num()+1, start_segment_index + num_segments_in_memory) - 1;
     
 	   if (!interactive)
-	     allocate_segments(segments, start_segment_index, end_segment_index, proj_data_ptr->get_proj_data_info_ptr());
+	     allocate_segments(segments, start_segment_index, end_segment_index, proj_data_ptr->get_proj_data_info_sptr().get());
 
  for (current_frame_num = 1;
       current_frame_num<=frame_defs.get_num_frames();

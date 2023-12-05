@@ -1,20 +1,9 @@
-//
-// $Id: GEDimensionListmodeInputFileFormat.h,v 1.1 2011-06-28 14:46:08 kris Exp $
-//
 #ifndef __UCL_IO_GEDimensionListmodeInputFileFormat_h__
 #define __UCL_IO_GEDimensionListmodeInputFileFormat_h__
 /*
-    Copyright (C) 2006- $Date: 2011-06-28 14:46:08 $, Hammersmith Imanet Ltd
+    Copyright (C) 2008, Hammersmith Imanet Ltd
+    Copyright (C) 2013, 2019, 2020, 2023, University College London
     This file is part of STIR.
-    This file is free software; you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as published by
-    the Free Software Foundation; either version 2.1 of the License, or
-    (at your option) any later version.
-
-    This file is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
 
     See STIR/LICENSE.txt for details
 */
@@ -22,18 +11,12 @@
 
   \file
   \ingroup GEDimension
-  \brief Declaration of class stir::ecat::ecat7::GEDimensionListmodeInputFileFormat
+  \brief Declaration of class stir::UCL::GEDimensionListmodeInputFileFormat
 
   \author Kris Thielemans
-
-  $Date: 2011-06-28 14:46:08 $
-  $Revision: 1.1 $
 */
 #include "stir/IO/InputFileFormat.h"
-#include "UCL/listmode/CListModeDataGEDimension.h"
-#include "stir/warning.h"
-#include <boost/format.hpp>
-#include "stir/ByteOrder.h"
+#include "stir/listmode/ListModeData.h"
 #include <string>
 
 
@@ -46,42 +29,23 @@ namespace UCL {
   \ingroup listmode
 */
 class GEDimensionListmodeInputFileFormat :
-public InputFileFormat<CListModeData >
+public InputFileFormat<ListModeData >
 {
  public:
   virtual const std::string
-    get_name() const
+    get_name() const override
   {  return "GEDimension"; }
 
 
  protected:
-  virtual 
-    bool 
-    actual_can_read(const FileSignature& signature,
-		    std::istream& input) const
-  {
-    boost::uint32_t word = *reinterpret_cast<uint32_t const * const>(signature.get_signature());
-    if (word==65279)
-      return true;
-    // try byteswap
-    ByteOrder::swap_order(word);
-    return word==65279;
-  }
+  virtual bool 
+    actual_can_read(const stir::FileSignature& signature,
+		    std::istream& input) const override;
  public:
   virtual unique_ptr<data_type>
-    read_from_file(std::istream& input) const
-  {
-    // cannot do this 
-    warning(boost::format("read_from_file for GEDimension listmode data with istream not implemented %s:%s. Sorry") %
-	  __FILE__ % __LINE__);
-    return
-      unique_ptr<data_type>();
-  }
+    read_from_file(std::istream& input) const override;
   virtual unique_ptr<data_type>
-    read_from_file(const std::string& filename) const
-  {	
-    return unique_ptr<data_type>(new CListModeDataGEDimension(filename)); 
-  }
+    read_from_file(const std::string& filename) const override;
 };
 
 } // namespace UCL

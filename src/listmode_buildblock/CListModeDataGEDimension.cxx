@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2013 University College London
+    Copyright (C) 2013, 2014, 2018, 2020, 2021, 2023, University College London
 */
 /*!
   \file
@@ -14,6 +14,8 @@
 #include "stir/Succeeded.h"
 #include "stir/ExamInfo.h"
 #include "stir/info.h"
+#include "stir/error.h"
+#include "stir/ByteOrder.h"
 #include <boost/format.hpp>
 #include <iostream>
 #include <fstream>
@@ -31,17 +33,17 @@ CListModeDataGEDimension(const std::string& listmode_filename)
 
   warning("CListModeDataGEDimension: "
 	  "Assuming this is GEDimension STE, but couldn't find scan start time etc");
-  this->scanner_sptr.reset(new Scanner(Scanner::DiscoverySTE));
+  shared_ptr<Scanner> scanner_sptr(new Scanner(Scanner::DiscoverySTE));
   this->exam_info_sptr.reset(new ExamInfo);
 
   this->proj_data_info_sptr.reset(
-      ProjDataInfo::ProjDataInfoCTI(this->scanner_sptr,
+      ProjDataInfo::ProjDataInfoCTI(scanner_sptr,
 				    /*span=*/ 1,
-				    this->scanner_sptr->get_num_rings()-1,
-				    this->scanner_sptr->get_num_detectors_per_ring()/2,
-				    this->scanner_sptr->get_max_num_non_arccorrected_bins(),
-				    /*arc_corrected =*/ false,
-				    /*tof_mash_factor = */  1));
+				    scanner_sptr->get_num_rings()-1,
+				    scanner_sptr->get_num_detectors_per_ring()/2,
+				    scanner_sptr->get_max_num_non_arccorrected_bins(),
+				    /*arc_corrected =*/ false
+                                    ));
 
   if (open_lm_file() == Succeeded::no)
     error(boost::format("CListModeDataGEDimension: error opening the first listmode file for filename %s") %
@@ -55,8 +57,11 @@ get_name() const
   return listmode_filename;
 }
 
-
-shared_ptr<stir::ProjDataInfo> 
+#if STIR_VERSION < 050000
+shared_ptr<stir::ProjDataInfo>
+#else
+shared_ptr<const stir::ProjDataInfo>
+#endif
 CListModeDataGEDimension::
 get_proj_data_info_sptr() const
 {

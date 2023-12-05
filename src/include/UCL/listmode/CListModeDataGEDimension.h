@@ -39,7 +39,11 @@ public:
   virtual std::string
     get_name() const;
 
+#if STIR_VERSION < 050000
   virtual shared_ptr<stir::ProjDataInfo>     
+#else
+  virtual shared_ptr<const stir::ProjDataInfo>
+#endif
     get_proj_data_info_sptr() const;
 
   virtual

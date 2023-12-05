@@ -331,8 +331,10 @@ dynamic_cast<CListRecordGERDF8 const *>(&e2) != 0 &&
 	  
 	  if (this->is_event())
 	  {
+#ifdef STIR_TOF
 	    // set TOF info in ps
 	   this->delta_time = this->event_data.get_tof_bin() *this-> get_scanner_ptr()->get_size_of_timing_bin();
+#endif
 	  }
  
 	  
