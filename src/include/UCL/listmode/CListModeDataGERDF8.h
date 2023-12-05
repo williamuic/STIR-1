@@ -1,0 +1,81 @@
+//
+// $Id: CListModeDataGERDF8.h,v 1.12 2011-06-28 14:48:09 kris Exp $
+//
+/*
+    Copyright (C) 2013 University College London
+*/
+/*!
+  \file
+  \ingroup listmode
+  \brief Declaration of class stir::CListModeDataGERDF8
+    
+  \author Kris Thielemans
+*/
+
+#ifndef __UCL_listmode_CListModeDataGERDF8_H__
+#define __UCL_listmode_CListModeDataGERDF8_H__
+
+#include "stir/listmode/CListModeData.h"
+#include "UCL/listmode/CListRecordGERDF8.h"
+#include "stir/IO/InputStreamWithRecords.h"
+#include "stir/shared_ptr.h"
+#include <iostream>
+#include <string>
+
+
+START_NAMESPACE_STIR
+namespace UCL {
+
+//! A class that reads the listmode data for GE RDF8 console scanners
+/*!  \ingroup listmode
+    This file format is used by GE RDF8 console scanners (e.g. 690 and 710).
+*/
+class CListModeDataGERDF8 : public CListModeData
+{
+public:
+  //! Constructor taking a filename
+  CListModeDataGERDF8(const std::string& listmode_filename);
+
+  virtual std::string
+    get_name() const;
+
+  virtual shared_ptr<stir::ProjDataInfo>     
+    get_proj_data_info_sptr() const;
+
+  virtual
+    std::time_t get_scan_start_time_in_secs_since_1970() const;
+
+  virtual 
+    shared_ptr <CListRecord> get_empty_record_sptr() const;
+
+  virtual 
+    Succeeded get_next_record(CListRecord& record) const;
+
+  virtual 
+    Succeeded reset();
+
+  virtual
+    SavedPosition save_get_position();
+
+  virtual
+    Succeeded set_get_position(const SavedPosition&);
+
+  //! returns \c true, as GERDF8 listmode data stores delayed events (and prompts)
+  /*! \todo this depends on the acquisition parameters */
+  virtual bool has_delayeds() const { return true; }
+
+private:
+  typedef CListRecordGERDF8 CListRecordT;
+  shared_ptr<stir::ProjDataInfo> proj_data_info_sptr;
+  std::string listmode_filename;
+  shared_ptr<InputStreamWithRecords<CListRecordT, bool> > current_lm_data_ptr;
+  float lm_start_time;
+  float lm_duration;
+  
+  Succeeded open_lm_file(); 
+};
+
+} // namespace UCL
+END_NAMESPACE_STIR
+
+#endif
