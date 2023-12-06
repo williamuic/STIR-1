@@ -10,7 +10,7 @@
 */
 
 
-#include "UCL/listmode/CListModeDataGEDimension.h"
+#include "stir_experimental/listmode/CListModeDataGEDimension.h"
 #include "stir/Succeeded.h"
 #include "stir/ExamInfo.h"
 #include "stir/info.h"

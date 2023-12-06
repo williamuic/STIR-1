@@ -1,8 +1,10 @@
-//
-// $Id: CListModeDataGERDF8.h,v 1.12 2011-06-28 14:48:09 kris Exp $
-//
 /*
     Copyright (C) 2013 University College London
+    This file is part of STIR.
+
+    SPDX-License-Identifier: Apache-2.0
+
+    See STIR/LICENSE.txt for details
 */
 /*!
   \file
@@ -12,11 +14,11 @@
   \author Kris Thielemans
 */
 
-#ifndef __UCL_listmode_CListModeDataGERDF8_H__
-#define __UCL_listmode_CListModeDataGERDF8_H__
+#ifndef __listmode_CListModeDataGERDF8_H__
+#define __listmode_CListModeDataGERDF8_H__
 
 #include "stir/listmode/CListModeData.h"
-#include "UCL/listmode/CListRecordGERDF8.h"
+#include "stir/listmode/CListRecordGERDF8.h"
 #include "stir/IO/InputStreamWithRecords.h"
 #include "stir/shared_ptr.h"
 #include <iostream>
@@ -24,7 +26,6 @@
 
 
 START_NAMESPACE_STIR
-namespace UCL {
 
 //! A class that reads the listmode data for GE RDF8 console scanners
 /*!  \ingroup listmode
@@ -75,7 +76,6 @@ private:
   Succeeded open_lm_file(); 
 };
 
-} // namespace UCL
 END_NAMESPACE_STIR
 
 #endif

@@ -1,5 +1,10 @@
 /*
     Copyright (C) 2013 University College London
+    This file is part of STIR.
+
+    SPDX-License-Identifier: Apache-2.0
+
+    See STIR/LICENSE.txt for details
 */
 /*!
   \file
@@ -10,24 +15,16 @@
 */
 
 
-#include "UCL/listmode/CListModeDataGERDF8.h"
+#include "stir/listmode/CListModeDataGERDF8.h"
 #include "stir/Succeeded.h"
 #include "stir/ExamInfo.h"
 #include "stir/info.h"
+#include "stir/warning.h"
 #include <boost/format.hpp>
 #include <iostream>
 #include <fstream>
-#include "GEextra.h" 
-#include "GEtypes.h"
-#include "GEsysConstants.h"
-#include "GElmUtilsPET.h" /* values updated for new event definitions */
-#include "GEunlisterPET.h"
-#include "GErdfUtils.h" /* for GE_set_error_string */
 
 START_NAMESPACE_STIR
-
-namespace UCL {
-
 
 CListModeDataGERDF8::
 CListModeDataGERDF8(const std::string& listmode_filename)
@@ -147,7 +144,5 @@ set_get_position(const CListModeDataGERDF8::SavedPosition& pos)
   return
     current_lm_data_ptr->set_get_position(pos);
 }
-
-} // namespace UCL
 
 END_NAMESPACE_STIR

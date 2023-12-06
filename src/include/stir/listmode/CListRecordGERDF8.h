@@ -1,14 +1,16 @@
 /*
     Copyright (C) 2003-2011 Hammersmith Imanet Ltd (CListRecordECAT.h)
     Copyright (C) 2013 University College London (major mods for GE Dimension data)
+    This file is part of STIR.
+
+    SPDX-License-Identifier: Apache-2.0
+
+    See STIR/LICENSE.txt for details
 */
 /*!
   \file
   \ingroup listmode
   \brief Classes for listmode records of GE Dimension console data
-
-  This file is based on GE proprietary information and can therefore not be distributed outside UCL
-  without approval from GE.
     
   \author Kris Thielemans
 */
@@ -22,7 +24,6 @@
 #include "stir/ByteOrder.h"
 #include "stir/ByteOrderDefine.h"
 #include <boost/static_assert.hpp>
-#include <boost/cstdint.hpp>
 #include <iostream>
 
 START_NAMESPACE_STIR
@@ -98,15 +99,15 @@ class CListEventDataGERDF8
   // Do byteswapping first before using this bit field.
   TODO
 #else
-    	boost::uint16_t soem:3;				/* Start Of Event Mark (should equal SOE constant) */
-	boost::uint16_t coinc:1;				/* boolean (should always be true: Coincidence Event) */
-	boost::uint16_t nomCoinc:1;			/* boolean (true:Nominal Coinc, false:Cal Coinc) */
-	boost::uint16_t prompt:1;			/* boolean (true:Prompt, false:Delay) */
-	boost::int16_t deltaTime:10;		/* TOF 'signed' delta time (units defined by electronics) */
-	boost::uint16_t hiXtalAxialID:6;		/* system High Crystal Axial Id */
-	boost::uint16_t hiXtalTransAxID:10;	/* system High Crystal Trans-Axial Id */
-	boost::uint16_t loXtalAxialID:6;		/* system Low Crystal Axial Id */
-	boost::uint16_t loXtalTransAxID:10;	/* system Low Crystal Trans-Axial Id */	
+    std::uint16_t soem:3;				/* Start Of Event Mark (should equal SOE constant) */
+	std::uint16_t coinc:1;				/* boolean (should always be true: Coincidence Event) */
+	std::uint16_t nomCoinc:1;			/* boolean (true:Nominal Coinc, false:Cal Coinc) */
+	std::uint16_t prompt:1;			/* boolean (true:Prompt, false:Delay) */
+	std::int16_t deltaTime:10;		/* TOF 'signed' delta time (units defined by electronics) */
+	std::uint16_t hiXtalAxialID:6;		/* system High Crystal Axial Id */
+	std::uint16_t hiXtalTransAxID:10;	/* system High Crystal Trans-Axial Id */
+	std::uint16_t loXtalAxialID:6;		/* system Low Crystal Axial Id */
+	std::uint16_t loXtalTransAxID:10;	/* system Low Crystal Trans-Axial Id */	
 #endif
 }; /*-coincidence event*/
 
@@ -138,24 +139,24 @@ private:
 #if STIRIsNativeByteOrderBigEndian
       TODO
 #else
-	boost::uint16_t soem:3;			/* Start Of Event Mark (should equal SOE constant) */
-	boost::uint16_t coinc:1;			/* boolean (should always be false: non-Coinc) */
-	boost::uint16_t eventType:4;		/* eventType=TIME_MARK_EVT */
-	boost::uint16_t timeMarkMS:8;	/* Most Significant Time Mark Bits */
-	boost::uint16_t timeMarkMid:16;	/* Middle Significant Time Mark Bits */
-	boost::uint16_t timeMarkLS:8;	/* Least Significant Time Mark Bits */
-	boost::uint16_t unused:4;		/* Undefined */
-	boost::uint16_t eoem:4;			/* End Of Event Mark (should equal EOE constant) */
+	std::uint16_t soem:3;			/* Start Of Event Mark (should equal SOE constant) */
+	std::uint16_t coinc:1;			/* boolean (should always be false: non-Coinc) */
+	std::uint16_t eventType:4;		/* eventType=TIME_MARK_EVT */
+	std::uint16_t timeMarkMS:8;	/* Most Significant Time Mark Bits */
+	std::uint16_t timeMarkMid:16;	/* Middle Significant Time Mark Bits */
+	std::uint16_t timeMarkLS:8;	/* Least Significant Time Mark Bits */
+	std::uint16_t unused:4;		/* Undefined */
+	std::uint16_t eoem:4;			/* End Of Event Mark (should equal EOE constant) */
 #endif
     };      
   } data_t;
   data_t data;
 
-  boost::uint64_t time_lo() const
+  std::uint64_t time_lo() const
   { return data.timeMarkLS; }
-  boost::uint64_t time_hi() const
+  std::uint64_t time_hi() const
   { return data.timeMarkMS; }
-  boost::uint64_t time_mid() const
+  std::uint64_t time_mid() const
   { return data.timeMarkMid; }
 };
 
@@ -189,16 +190,16 @@ private:
   typedef union{
     struct {
 #if STIRIsNativeByteOrderBigEndian
-      boost::uint32_t signature : 5;
-      boost::uint32_t reserved : 3;
-      boost::uint32_t value : 24; // timing info here in the first word, but we're ignoring it
+      std::uint32_t signature : 5;
+      std::uint32_t reserved : 3;
+      std::uint32_t value : 24; // timing info here in the first word, but we're ignoring it
 #else
-      boost::uint32_t value : 24;
-      boost::uint32_t reserved : 3;
-      boost::uint32_t signature : 5;
+      std::uint32_t value : 24;
+      std::uint32_t reserved : 3;
+      std::uint32_t signature : 5;
 #endif
     };      
-    boost::uint32_t raw;
+    std::uint32_t raw;
   } oneword_t;
   oneword_t words[2];
 };
@@ -347,9 +348,9 @@ private:
     DataType  event_data;
     TimeType   time_data; 
     //GatingType gating_data;
-    boost::int32_t  raw[2];
+    std::int32_t  raw[2];
   };
-  BOOST_STATIC_ASSERT(sizeof(boost::int32_t)==4);
+  BOOST_STATIC_ASSERT(sizeof(std::int32_t)==4);
   BOOST_STATIC_ASSERT(sizeof(DataType)==6); 
   BOOST_STATIC_ASSERT(sizeof(TimeType)==6); 
   //BOOST_STATIC_ASSERT(sizeof(GatingType)==8); 

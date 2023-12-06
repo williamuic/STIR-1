@@ -12,38 +12,13 @@
     Copyright (C) 2013, University College London
     This file is part of STIR.
 
-    This file is free software; you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as published by
-    the Free Software Foundation; either version 2.1 of the License, or
-    (at your option) any later version.
-
-    This file is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
+    SPDX-License-Identifier: Apache-2.0
 
     See STIR/LICENSE.txt for details
 */
 
-/* Possible compilation switches:
-  
-USE_SegmentByView 
-  Currently our ProjData classes store segments as floats, which is a waste of
-  memory and time for simple binning of listmode data. This should be
-  remedied at some point by having member template functions to allow different
-  data types in ProjData et al.
-  Currently we work (somewhat tediously) around this problem by using Array classes directly.
-  If you want to use the Segment classes (safer and cleaner)
-  #define USE_SegmentByView
-
-
-FRAME_BASED_DT_CORR:
-   dead-time correction based on the frame, or on the time of the event
-*/   
 // (Note: can currently NOT be disabled)
 #define USE_SegmentByView
-
-//#define FRAME_BASED_DT_CORR
 
 // set elem_type to what you want to use for the sinogram elements
 // we need a signed type, as randoms can be subtracted. However, signed char could do.
@@ -60,7 +35,7 @@ FRAME_BASED_DT_CORR:
 
 #include "stir/utilities.h"
 
-#include "UCL/listmode/LmToGatedProjData.h"
+#include "stir_experimental/listmode/LmToGatedProjData.h"
 #include "stir/listmode/CListRecord.h"
 #include "stir/listmode/CListModeData.h"
 #include "stir/ExamInfo.h"
