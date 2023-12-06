@@ -33,16 +33,16 @@ CListModeDataGERDF8(const std::string& listmode_filename)
   // initialise scanner_ptr before calling open_lm_file, as it is used in that function
 
   warning("CListModeDataGERDF8: "
-	  "Assuming this is GERDF8 STE, but couldn't find scan start time etc");
-  this->scanner_sptr.reset(new Scanner(Scanner::Discovery690));
+	  "Assuming this is GERDF8 D690, but couldn't find scan start time etc");
+  auto scanner_sptr = std::make_shared<Scanner>(Scanner::Discovery690);
   this->exam_info_sptr.reset(new ExamInfo);
 
   this->proj_data_info_sptr.reset(
-      ProjDataInfo::ProjDataInfoCTI(this->scanner_sptr,
+      ProjDataInfo::ProjDataInfoCTI(scanner_sptr,
 				    /*span=*/ 1,
-				    this->scanner_sptr->get_num_rings()-1,
-				    this->scanner_sptr->get_num_detectors_per_ring()/2,
-				    this->scanner_sptr->get_max_num_non_arccorrected_bins(),
+				    scanner_sptr->get_num_rings()-1,
+				    scanner_sptr->get_num_detectors_per_ring()/2,
+				    scanner_sptr->get_max_num_non_arccorrected_bins(),
 				    /*arc_corrected =*/ false,
 				    /*tof_mash_factor = */  1));
 
@@ -59,7 +59,7 @@ get_name() const
 }
 
 
-shared_ptr<stir::ProjDataInfo> 
+shared_ptr<const stir::ProjDataInfo>
 CListModeDataGERDF8::
 get_proj_data_info_sptr() const
 {
@@ -105,7 +105,7 @@ open_lm_file()
     }
   stream_ptr->seekg(listStartOffset);
 #else
-  stream_ptr->seekg(21907456); // TODO get offset from RDF
+  stream_ptr->seekg(76346880); // TODO get offset from RDF
 #endif
   current_lm_data_ptr.reset(
                             new InputStreamWithRecords<CListRecordT, bool>(stream_ptr, 

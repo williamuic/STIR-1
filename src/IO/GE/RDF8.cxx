@@ -5,24 +5,24 @@
 
    Copyright 2017 Institute of Nuclear Medicine, University College London.
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+   This file is part of STIR.
 
-       http://www.apache.org/licenses/LICENSE-2.0
+   SPDX-License-Identifier: Apache-2.0
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+   See STIR/LICENSE.txt for details
 
    GE RDF8 file reader.
 
  */
 
-#include "RDF8.h"
+#include "stir/IO/GE/RDF8.h"
 
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/gregorian/conversion.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -503,25 +503,27 @@ bool CRDF8EXAM::SetPatientName(std::string newName)
 
 bool CRDF8EXAM::SetExamUID(std::string newExamUID)
 {
+#if 0
   //Sets a new DICOM exam UID
   if (!dcm::IsValidUID(newExamUID.c_str()))
   {
     BOOST_LOG_TRIVIAL(error) << "Cannot set exam UID to " << newExamUID << " : " << newExamUID.size();
     return false;
   }
-
+#endif
   return CleanField(_examIdDicom, IDB_LEN_ID, newExamUID);
 }
 
 bool CRDF8EXAM::SetScanUID(std::string newScanUID)
 {
   //Sets a new DICOM scan UID
-  if (!dcm::IsValidUID(newScanUID.c_str()))
+#if 0
+  if (!dcm:(newScanUID.c_str()))
   {
     BOOST_LOG_TRIVIAL(error) << "Cannot set scan UID to " << newScanUID << " : " << newScanUID.size();
     return false;
   }
-
+#endif
   return CleanField(_scanIdDicom, IDB_LEN_ID, newScanUID);
 }
 

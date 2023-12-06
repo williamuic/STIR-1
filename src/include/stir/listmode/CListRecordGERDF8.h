@@ -19,6 +19,7 @@
 #define __stir_listmode_CListRecordGERDF8_H__
 
 #include "stir/listmode/CListRecord.h"
+#include "stir/listmode/ListTime.h"
 #include "stir/listmode/CListEventCylindricalScannerWithDiscreteDetectors.h"
 #include "stir/Succeeded.h"
 #include "stir/ByteOrder.h"
@@ -216,7 +217,7 @@ private:
 
   \todo Currently we always assume the data is from a DSTE. We should really read this from the RDF header.
 */
-class CListRecordGERDF8 : public CListRecord, public CListTime, // public CListGatingInput,
+class CListRecordGERDF8 : public CListRecord, public ListTime, // public CListGatingInput,
     public  CListEventCylindricalScannerWithDiscreteDetectors
 {
   typedef CListEventDataGERDF8 DataType;
@@ -224,7 +225,7 @@ class CListRecordGERDF8 : public CListRecord, public CListTime, // public CListG
   //typedef CListGatingDataGERDF8 GatingType;
 
  public:  
-  CListRecordGERDF8(const shared_ptr<ProjDataInfo>& proj_data_info_sptr) :
+  CListRecordGERDF8(const shared_ptr<const ProjDataInfo>& proj_data_info_sptr) :
   CListEventCylindricalScannerWithDiscreteDetectors(proj_data_info_sptr)
     {}
 
@@ -245,9 +246,9 @@ class CListRecordGERDF8 : public CListRecord, public CListTime, // public CListG
     { return *this; }
   virtual const CListEvent&  event() const
     { return *this; }
-  virtual CListTime&   time()
+  virtual ListTime&   time()
     { return *this; }
-  virtual const CListTime&   time() const
+  virtual const ListTime&   time() const
     { return *this; }
 #if 0
   virtual CListGatingInput&  gating_input()
@@ -332,10 +333,8 @@ dynamic_cast<CListRecordGERDF8 const *>(&e2) != 0 &&
 	  
 	  if (this->is_event())
 	  {
-#ifdef STIR_TOF
 	    // set TOF info in ps
-	   this->delta_time = this->event_data.get_tof_bin() *this-> get_scanner_ptr()->get_size_of_timing_bin();
-#endif
+	   this->delta_time = this->event_data.get_tof_bin() *this-> get_scanner_ptr()->get_size_of_timing_pos();
 	  }
  
 	  

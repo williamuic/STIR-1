@@ -5,17 +5,11 @@
 
    Copyright 2017 Institute of Nuclear Medicine, University College London.
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+   This file is part of STIR.
 
-       http://www.apache.org/licenses/LICENSE-2.0
+   SPDX-License-Identifier: Apache-2.0
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+   See STIR/LICENSE.txt for details
 
    GE RDF8 file reader class
 
@@ -28,26 +22,15 @@
 #include <fstream>
 #include <vector>
 #include <typeinfo>
-
+#include <string>
+#include <map>
+#include <cstdint>
 //BOOST
-#include <boost/cstdfloat.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/utility/setup.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/lexical_cast.hpp>
+#include <boost/any.hpp>
 
-#include "inm/dicom/Dicom.hpp"
-#include "inm/io/IOBase.h"
-
-namespace dcm = inm;
 namespace fs = boost::filesystem;
 
-#ifndef float32_t
-#define float32_t boost::float32_t
-#endif
 
 namespace nmtools
 {
@@ -55,6 +38,8 @@ namespace IO
 {
 namespace ge
 {
+  typedef float float32_t;
+
 //Contents of rdfConstants.m from GETPETToolbox
 const int ACQ_MAX_BINS = 64;
 const int S_RDF_MAX_TEO_MASK_WIDTH = 283;
@@ -89,22 +74,22 @@ const int SYS_CRYSTALS_PER_BLOCK_MAX = 54;
 
 struct RDF8HDROFFSETS
 {
-  uint32_t RDFConfigStructOffset;
-  uint32_t sorterStructOffset;
-  uint32_t singlesStructOffset;
-  uint32_t deadTimeStructOffset;
-  uint32_t acqParamStructOffset;
-  uint32_t computeParmStructOffset;
-  uint32_t petExamStructOffset;
-  uint32_t acqStatsStructOffset;
-  uint32_t Norm3DStructOffset;
-  uint32_t sysGeometryStructOffset;
-  uint32_t calSetStructOffset;
-  uint32_t ctcCrystalTimeDiffStructOffset;
-  uint32_t compressStructOffset;
-  uint32_t listHeaderOffset;
-  uint32_t detModuleSignatureOffset;
-  uint32_t spares[2];
+  std::uint32_t RDFConfigStructOffset;
+  std::uint32_t sorterStructOffset;
+  std::uint32_t singlesStructOffset;
+  std::uint32_t deadTimeStructOffset;
+  std::uint32_t acqParamStructOffset;
+  std::uint32_t computeParmStructOffset;
+  std::uint32_t petExamStructOffset;
+  std::uint32_t acqStatsStructOffset;
+  std::uint32_t Norm3DStructOffset;
+  std::uint32_t sysGeometryStructOffset;
+  std::uint32_t calSetStructOffset;
+  std::uint32_t ctcCrystalTimeDiffStructOffset;
+  std::uint32_t compressStructOffset;
+  std::uint32_t listHeaderOffset;
+  std::uint32_t detModuleSignatureOffset;
+  std::uint32_t spares[2];
 };
 
 std::string getGEDate(std::string date);
@@ -130,7 +115,7 @@ protected:
 
 };
 
-class CRDF8CONFIG : public RDF8Base, inm::IOBase
+class CRDF8CONFIG : public RDF8Base
 {
 
 public:
@@ -145,14 +130,14 @@ public:
 
 protected:
 
-  uint32_t _majorVersion;
-  uint32_t _minorVersion;
-  uint32_t _RDFComplete;
-  uint32_t _deadTimeVersion;
-  uint32_t _singlesVersion;
-  uint32_t _isListFile;
-  uint64_t _fileSizeInBytes;
-  uint32_t _spares[2];
+  std::uint32_t _majorVersion;
+  std::uint32_t _minorVersion;
+  std::uint32_t _RDFComplete;
+  std::uint32_t _deadTimeVersion;
+  std::uint32_t _singlesVersion;
+  std::uint32_t _isListFile;
+  std::uint64_t _fileSizeInBytes;
+  std::uint32_t _spares[2];
 
   bool populateDictionary();
   float GetVersionNumber();
@@ -161,7 +146,7 @@ protected:
   friend std::ostream &operator<<(std::ostream &os, const CRDF8CONFIG &rdf);
 };
 
-class CRDF8EXAM : public RDF8Base, inm::IOBase
+class CRDF8EXAM : public RDF8Base
 {
 
 public:
@@ -194,8 +179,8 @@ protected:
   std::string _patientID;
   std::string _patientName;
   std::string _patientBirthdate;
-  uint32_t _patientSex;
-  uint32_t _examID[2];
+  std::uint32_t _patientSex;
+  std::uint32_t _examID[2];
   std::string _requisition;
   std::string _hospitalName;
   std::string _scannerDesc;
@@ -208,7 +193,7 @@ protected:
   std::string _patientHistory;
   std::string _modality;
   std::string _manufacturer;
-  uint32_t _scanID[2];
+  std::uint32_t _scanID[2];
   std::string _scanDescription;
   std::string _landmarkName;
   std::string _landmarkAbbrev;
@@ -238,10 +223,10 @@ protected:
   std::string _examIdDicom;
   std::string _normal2dCalID;
   std::string _patientIdDicom;
-  uint32_t _patientType;
+  std::uint32_t _patientType;
   std::string _softwareVersion;
-  uint32_t _isotopeHasPromptGamma;
-  uint32_t _spares[9];
+  std::uint32_t _isotopeHasPromptGamma;
+  std::uint32_t _spares[9];
 
   bool populateDictionary();
 
@@ -253,7 +238,7 @@ protected:
   friend std::ostream &operator<<(std::ostream &os, const CRDF8EXAM &rdf);
 };
 
-class CRDF8ACQ : public RDF8Base, inm::IOBase
+class CRDF8ACQ : public RDF8Base
 {
 public:
 
@@ -261,31 +246,31 @@ public:
   bool GetField(const std::string sid, boost::any &data) const;
 
 protected:
-  uint32_t _termCondition;
-  uint32_t _totalPrompts;
-  uint32_t _totalDelays;
-  uint32_t _acceptedTriggers;
-  uint32_t _rejectedTriggers;
-  uint32_t _scanStartTime;
-  uint32_t _frameStartTime;
-  uint32_t _frameDuration;
+  std::uint32_t _termCondition;
+  std::uint32_t _totalPrompts;
+  std::uint32_t _totalDelays;
+  std::uint32_t _acceptedTriggers;
+  std::uint32_t _rejectedTriggers;
+  std::uint32_t _scanStartTime;
+  std::uint32_t _frameStartTime;
+  std::uint32_t _frameDuration;
   std::string _frameID;
-  uint32_t _binNumber;
-  std::unique_ptr<std::vector<uint32_t>> _accumBinDuration;
-  uint32_t _totalPromptsMs;
-  uint32_t _totalDelaysMs;
-  uint32_t _sorterFilteredEvtsLS;
-  uint32_t _sorterFilteredEvtsMS;
-  uint32_t _badCoincStreamEvts;
-  uint32_t _frameNumber;
-  uint32_t _isRejectBin;
-  uint32_t _frameStartCoincTStamp;
-  uint32_t _readyToScanUTC;
-  uint32_t spares[5];
+  std::uint32_t _binNumber;
+  std::unique_ptr<std::vector<std::uint32_t>> _accumBinDuration;
+  std::uint32_t _totalPromptsMs;
+  std::uint32_t _totalDelaysMs;
+  std::uint32_t _sorterFilteredEvtsLS;
+  std::uint32_t _sorterFilteredEvtsMS;
+  std::uint32_t _badCoincStreamEvts;
+  std::uint32_t _frameNumber;
+  std::uint32_t _isRejectBin;
+  std::uint32_t _frameStartCoincTStamp;
+  std::uint32_t _readyToScanUTC;
+  std::uint32_t spares[5];
   
 };
 
-class RDF8Info : public inm::IOBase {
+class RDF8Info {
 
 private:
   std::unique_ptr<CRDF8CONFIG> config;

@@ -38,36 +38,35 @@ public:
   CListModeDataGERDF8(const std::string& listmode_filename);
 
   virtual std::string
-    get_name() const;
+    get_name() const  override;
 
-  virtual shared_ptr<stir::ProjDataInfo>     
-    get_proj_data_info_sptr() const;
+  virtual shared_ptr<const stir::ProjDataInfo>
+    get_proj_data_info_sptr() const override;
 
   virtual
     std::time_t get_scan_start_time_in_secs_since_1970() const;
 
   virtual 
-    shared_ptr <CListRecord> get_empty_record_sptr() const;
+    shared_ptr <CListRecord> get_empty_record_sptr() const  override;
 
   virtual 
-    Succeeded get_next_record(CListRecord& record) const;
+    Succeeded get_next_record(CListRecord& record) const  override;
 
   virtual 
-    Succeeded reset();
+    Succeeded reset()  override;
 
   virtual
-    SavedPosition save_get_position();
+    SavedPosition save_get_position()  override;
 
   virtual
-    Succeeded set_get_position(const SavedPosition&);
+    Succeeded set_get_position(const SavedPosition&)  override;
 
-  //! returns \c true, as GERDF8 listmode data stores delayed events (and prompts)
+  //! returns \c true, as GERDF8 listmode data does not store delayed events
   /*! \todo this depends on the acquisition parameters */
-  virtual bool has_delayeds() const { return true; }
+  virtual bool has_delayeds() const { return false; }
 
 private:
   typedef CListRecordGERDF8 CListRecordT;
-  shared_ptr<stir::ProjDataInfo> proj_data_info_sptr;
   std::string listmode_filename;
   shared_ptr<InputStreamWithRecords<CListRecordT, bool> > current_lm_data_ptr;
   float lm_start_time;

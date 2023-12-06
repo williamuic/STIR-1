@@ -53,6 +53,8 @@
 #endif
 #include "stir/IO/ECAT8_32bitListmodeInputFileFormat.h"
 
+#include "stir/IO/GERDF8ListmodeInputFileFormat.h"
+
 #ifdef HAVE_HDF5
 #include "stir/IO/GEHDF5ListmodeInputFileFormat.h"
 #endif
@@ -148,13 +150,15 @@ static RegisterInputFileFormat<ecat::ECAT8_32bitListmodeInputFileFormat> LMdummy
 #ifdef HAVE_HDF5
 static RegisterInputFileFormat<GE::RDF_HDF5::GEHDF5ListmodeInputFileFormat> LMdummyGEHDF5(7);
 #endif
+static RegisterInputFileFormat<GE::RDF8::GERDF8ListmodeInputFileFormat> LMdummyGERDF8(8);
 
 #ifdef HAVE_UPENN
-static RegisterInputFileFormat<PENNListmodeInputFileFormat> LMdummyPENN(8);
+static RegisterInputFileFormat<PENNListmodeInputFileFormat> LMdummyPENN(9);
 static InputStreamWithRecordsFromUPENNbin::RegisterIt dummy68606;
 static InputStreamWithRecordsFromUPENNtxt::RegisterIt dummy686062;
-//static RegisterInputFileFormat<PENNbinListmodeInputFileFormat> LMdummyPENNbin(9);
+//static RegisterInputFileFormat<PENNbinListmodeInputFileFormat> LMdummyPENNbin(10);
 //static RegisterInputFileFormat<PENNImageInputFileFormat> idummy1(2);
 #endif
+
 
 END_NAMESPACE_STIR

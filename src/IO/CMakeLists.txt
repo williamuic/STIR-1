@@ -31,6 +31,9 @@ set(${dir_LIB_SOURCES}
 
   GIPL_ImageFormat.cxx
   stir_ecat_common.cxx
+
+  GERDF8ListmodeInputFileFormat.cxx
+  GE/RDF8.cxx
 ) 
 
 # we can use IO from the itk library
