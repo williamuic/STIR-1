@@ -92,6 +92,7 @@ open_lm_file()
     {
       return Succeeded::no;
     }
+#if 0
   scannerParams scannerParams;
   off_t listStartOffset;
   
@@ -102,8 +103,10 @@ open_lm_file()
       warning( "unable to get start of list file offset" );
       return Succeeded::no; 
     }
-
   stream_ptr->seekg(listStartOffset);
+#else
+  stream_ptr->seekg(21907456); // TODO get offset from RDF
+#endif
   current_lm_data_ptr.reset(
                             new InputStreamWithRecords<CListRecordT, bool>(stream_ptr, 
                                                                            4, 16,
