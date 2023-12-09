@@ -97,6 +97,11 @@ std::string getGETime(std::string time);
 
 class RDF8Base
 {
+ public:
+  virtual bool Read(const fs::path) = 0;
+  virtual bool GetField(const std::string sid, boost::any &data) const = 0;
+  virtual bool SetField(const std::string, const boost::any data){return false;}; //TODO: Implement this
+  virtual bool Write(const boost::filesystem::path path){return false;}; //TODO: Implement this
 
 protected: 
 
@@ -127,6 +132,8 @@ public:
   bool Write(const boost::filesystem::path path){return false;}; //TODO: Implement this
 
   ~CRDF8CONFIG(){};
+  float GetVersionNumber();
+  bool  IsListFile() const { return _isListFile; }
 
 protected:
 
@@ -140,7 +147,6 @@ protected:
   std::uint32_t _spares[2];
 
   bool populateDictionary();
-  float GetVersionNumber();
 
   //Print info for debugging
   friend std::ostream &operator<<(std::ostream &os, const CRDF8CONFIG &rdf);
@@ -152,10 +158,10 @@ class CRDF8EXAM : public RDF8Base
 public:
   CRDF8EXAM(){};
 
-  bool Read(const fs::path);
-  bool GetField(const std::string sid, boost::any &data) const;
-  bool SetField(const std::string, const boost::any data){return false;}; //TODO: Implement this
-  bool Write(const boost::filesystem::path path){return false;}; //TODO: Implement this
+  bool Read(const fs::path) override;
+  bool GetField(const std::string sid, boost::any &data) const override;
+  bool SetField(const std::string, const boost::any data) override {return false;} //TODO: Implement this
+  bool Write(const boost::filesystem::path path) override {return false;} //TODO: Implement this
 
   bool WriteFile(const fs::path, const fs::path);
   bool WriteFile(const fs::path, const fs::path, std::string);
@@ -169,12 +175,16 @@ public:
 
   bool RemovePII();
 
+  const std::string getPatientDOB() const { return getGEDate(_patientBirthdate); };
+  const std::string getStudyScanDate() const { return getGEDate(_measDateTime); };
+  const std::string getStudyScanTime() const { return getGETime(_measDateTime); };
+
   ~CRDF8EXAM(){};
 
 protected:
   int pad4(const int i) { return i - 1 + 4 - (i - 1) % 4; };
 
-  bool CleanField(std::string &, const int, std::string);
+  bool CleanField(std::string &, const std::size_t, std::string);
 
   std::string _patientID;
   std::string _patientName;
@@ -230,10 +240,6 @@ protected:
 
   bool populateDictionary();
 
-  const std::string getPatientDOB() const { return getGEDate(_patientBirthdate); };
-  const std::string getStudyScanDate() const { return getGEDate(_measDateTime); };
-  const std::string getStudyScanTime() const { return getGETime(_measDateTime); };
-
   //Print info for debugging
   friend std::ostream &operator<<(std::ostream &os, const CRDF8EXAM &rdf);
 };
@@ -242,8 +248,8 @@ class CRDF8ACQ : public RDF8Base
 {
 public:
 
-  bool Read(const fs::path);
-  bool GetField(const std::string sid, boost::any &data) const;
+  bool Read(const fs::path) override;
+  bool GetField(const std::string sid, boost::any &data) const override;
 
 protected:
   std::uint32_t _termCondition;
@@ -268,6 +274,38 @@ protected:
   std::uint32_t _readyToScanUTC;
   std::uint32_t spares[5];
   
+};
+
+class CRDF8LIST : public RDF8Base {
+ public:
+
+  static const unsigned RDF_NUM_LIST_COMPRESS_ALG_COEFS = 4U;
+  bool Read(const fs::path) override;
+  bool GetField(const std::string sid, boost::any &data) const override;
+
+  std::uint32_t GetListStartOffset() const { return _listStartOffset; }
+  std::uint32_t IsListCompressed() const { return _isListCompressed; }
+  std::uint32_t GetFirstTmAbsTimeStamp() const { return _firstTmAbsTimeStamp; }
+  std::uint32_t GetLastTmAbsTimeStamp() const { return _lastTmAbsTimeStamp; }
+
+ protected:
+  std::uint32_t _listType;
+  std::uint32_t _numAssocListFiles;
+  std::uint32_t _whichAssocLFile;
+  std::uint32_t _listAcqTime;
+  std::uint32_t _listStartOffset;
+  std::uint32_t _isListCompressed;
+  std::uint32_t _listCompressionAlg;
+  std::uint32_t _evalAsBadCompress; // New to RDFv8
+  std::uint32_t _areEvtTimeStampsKnown; // New to RDFv8
+  std::uint32_t _firstTmAbsTimeStamp; // New to RDFv8
+  std::uint32_t _lastTmAbsTimeStamp; // New to RDFv8
+  //std::uint32_t _spares;
+  std::uint64_t _sizeOfCompressedList; // New to RDFv8
+  std::uint64_t _sizeOfList;
+  double _listCompAlgCoefs[RDF_NUM_LIST_COMPRESS_ALG_COEFS]; // New to RDFv8
+
+  bool populateDictionary();
 };
 
 class RDF8Info {

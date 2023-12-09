@@ -466,7 +466,7 @@ bool CRDF8EXAM::WriteFile(const fs::path srcFile, const fs::path dstFile)
   return true;
 }
 
-bool CRDF8EXAM::CleanField(std::string &target, const int constraint, std::string newVal)
+bool CRDF8EXAM::CleanField(std::string &target, const std::size_t constraint, std::string newVal)
 {
   //Writes newVal into target while ensuring it conforms to the max field
   //length for header. E.g. IDB_LEN_PATIENT_ID.
@@ -861,11 +861,115 @@ bool CRDF8ACQ::GetField(const std::string sid, boost::any &data) const
   {
     BOOST_LOG_TRIVIAL(error) << e.what();
     BOOST_LOG_TRIVIAL(warning) << sid << " not found!";
+    return false;
   }
 
   return true;
 }
 
+bool CRDF8LIST::Read(const fs::path inFilePath)
+{
+  //Tries to read the list part of an RDF8 file.
+  int status = 0;
+  char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
+  BOOST_LOG_TRIVIAL(debug) << demangled << " - Reading...";
+  free(demangled);
+
+  if (!ReadOffsets(inFilePath))
+    return false;
+
+  std::ifstream fin(inFilePath.string().c_str(), std::ios::in | std::ios::binary);
+
+  if (!fin.is_open())
+  {
+    BOOST_LOG_TRIVIAL(error) << "Could not open input file! " << inFilePath;
+    return false;
+  }
+
+  //Go to block of header.
+  fin.seekg(_offsets.listHeaderOffset);
+
+  fin.read(reinterpret_cast<char *>(&_listType), sizeof(uint32_t));
+  fin.read(reinterpret_cast<char *>(&_numAssocListFiles), sizeof(uint32_t));
+  fin.read(reinterpret_cast<char *>(&_whichAssocLFile), sizeof(uint32_t));
+  fin.read(reinterpret_cast<char *>(&_listAcqTime), sizeof(uint32_t));
+  fin.read(reinterpret_cast<char *>(&_listStartOffset), sizeof(uint32_t));
+  fin.read(reinterpret_cast<char *>(&_isListCompressed), sizeof(uint32_t));
+  fin.read(reinterpret_cast<char *>(&_listCompressionAlg), sizeof(uint32_t));
+  fin.read(reinterpret_cast<char *>(&_evalAsBadCompress), sizeof(uint32_t)); // New to RDFv8
+  fin.read(reinterpret_cast<char *>(&_areEvtTimeStampsKnown), sizeof(uint32_t)); // New to RDFv8
+  fin.read(reinterpret_cast<char *>(&_firstTmAbsTimeStamp), sizeof(uint32_t)); // New to RDFv8
+  fin.read(reinterpret_cast<char *>(&_lastTmAbsTimeStamp), sizeof(uint32_t)); // New to RDFv8
+  {
+    std::uint32_t spares;
+    fin.read(reinterpret_cast<char *>(&spares), sizeof(uint32_t));
+  }
+  fin.read(reinterpret_cast<char *>(&_sizeOfCompressedList), sizeof(uint64_t)); // New to RDFv8
+  fin.read(reinterpret_cast<char *>(&_sizeOfList), sizeof(uint64_t));
+  fin.read(reinterpret_cast<char *>(&_listCompAlgCoefs), RDF_NUM_LIST_COMPRESS_ALG_COEFS * sizeof(double)); // New to RDFv8
+
+  fin.close();
+
+  return this->populateDictionary();
+}
+
+bool CRDF8LIST::populateDictionary(){
+
+  this->_dict = std::unique_ptr<Dictionary>(new Dictionary);
+  //C++17 std::make_unique
+
+  if (this->_dict == nullptr) {
+    int status = 0;
+    char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
+    BOOST_LOG_TRIVIAL(error) << demangled << "::populateDictionary - Cannot allocate RDF8 dictionary!";
+    free(demangled);
+    return false;
+  }
+
+  _dict->insert(DictionaryItem("LIST_TYPE", _listType));
+  _dict->insert(DictionaryItem("NUM_ASSOC_LIST_FILES", _numAssocListFiles));
+  _dict->insert(DictionaryItem("WHICH_ASSOC_LIST_FILE", _whichAssocLFile));
+  _dict->insert(DictionaryItem("LIST_ACQ_TIME", _listAcqTime));
+  _dict->insert(DictionaryItem("LIST_START_OFFSET", _listStartOffset));
+  _dict->insert(DictionaryItem("IS_LIST_COMPRESSED", _isListCompressed));
+  _dict->insert(DictionaryItem("LIST_COMPRESSION_ALG", _listCompressionAlg));
+  _dict->insert(DictionaryItem("EVAL_AS_BAD_COMPRESS", _evalAsBadCompress));
+  _dict->insert(DictionaryItem("ARE_EVENT_TIME_STAMPS_KNOWN", _areEvtTimeStampsKnown));
+  _dict->insert(DictionaryItem("FIRST_TIME_ABS_TIME_STAMP", _firstTmAbsTimeStamp));
+  _dict->insert(DictionaryItem("LAST_TIME_ABS_TIME_STAMP", _lastTmAbsTimeStamp));
+  _dict->insert(DictionaryItem("SIZE_OF_COMPRESSED_LIST", _sizeOfCompressedList));
+  _dict->insert(DictionaryItem("SIZE_OF_LIST", _sizeOfList));
+  // don't insert _listCompAlgCoefs, don't know what to do with them anyway
+  
+  return true;
+}
+
+
+bool CRDF8LIST::GetField(const std::string sid, boost::any &data) const
+{
+
+  if (_dict == nullptr)
+  {
+    int status = 0;
+    char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
+    BOOST_LOG_TRIVIAL(error) << demangled << " - Dictionary appears to be NULL!";
+    free(demangled);
+    return false;
+  }
+
+  try
+  {
+    data = _dict->at(sid);
+  }
+  catch (std::out_of_range &e)
+  {
+    BOOST_LOG_TRIVIAL(error) << e.what();
+    BOOST_LOG_TRIVIAL(warning) << sid << " not found!";
+    return false;
+  }
+
+  return true;
+}
 
 std::string getGEDate(std::string date){
 //Extracts date from RDF date/time field.
