@@ -101,6 +101,10 @@ endif()
 if (HAVE_HDF5)
   target_link_libraries(IO ${HDF5_CXX_LIBRARIES})
 endif()
+# RDF8
+target_compile_definitions(IO PRIVATE BOOST_LOG_DYN_LINK=1)
+find_package(Boost REQUIRED COMPONENTS log system filesystem)
+target_link_libraries(IO Boost::log Boost::system Boost::filesystem)
 
 if (AVW_FOUND)
   target_link_libraries(IO ${AVW_LIBRARIES})

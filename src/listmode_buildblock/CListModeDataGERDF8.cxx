@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2013 University College London
+    Copyright (C) 2013, 2023 University College London
     This file is part of STIR.
 
     SPDX-License-Identifier: Apache-2.0
@@ -20,6 +20,7 @@
 #include "stir/ExamInfo.h"
 #include "stir/info.h"
 #include "stir/warning.h"
+#include "stir/IO/GE/RDF8.h"
 #include <boost/format.hpp>
 #include <iostream>
 #include <fstream>
@@ -30,6 +31,16 @@ CListModeDataGERDF8::
 CListModeDataGERDF8(const std::string& listmode_filename)
   : listmode_filename(listmode_filename)    
 {
+  nmtools::IO::ge::CRDF8CONFIG config;
+  if (!config.Read(listmode_filename))
+    {
+      error("Error reading '" + listmode_filename + "' as GE RDF8");
+    }
+  if (!config.IsListFile())
+    {
+      error("Error reading '" + listmode_filename + "' as GE RDF8 (not a listmode file)");
+    }
+
   // initialise scanner_ptr before calling open_lm_file, as it is used in that function
 
   warning("CListModeDataGERDF8: "
@@ -87,6 +98,15 @@ CListModeDataGERDF8::
 open_lm_file()
 {
   info(boost::format("CListModeDataGERDF8: opening file %1%") % listmode_filename);
+  nmtools::IO::ge::CRDF8LIST list_header;
+  if (!list_header.Read(listmode_filename))
+    {
+      error("Error reading listheader from '" + listmode_filename + "' as GE RDF8");
+    }
+  if (list_header.IsListCompressed())
+    {
+      error("'" + listmode_filename + "' is GE RDF8 list-file, but it is compressed. Cannot handle that.");
+    }
   shared_ptr<std::istream> stream_ptr(new std::fstream(listmode_filename.c_str(), std::ios::in | std::ios::binary));
   if (!(*stream_ptr))
     {
@@ -105,7 +125,8 @@ open_lm_file()
     }
   stream_ptr->seekg(listStartOffset);
 #else
-  stream_ptr->seekg(76346880); // TODO get offset from RDF
+  const auto listStartOffset = list_header.GetListStartOffset();
+  stream_ptr->seekg(listStartOffset);
 #endif
   current_lm_data_ptr.reset(
                             new InputStreamWithRecords<CListRecordT, bool>(stream_ptr, 
