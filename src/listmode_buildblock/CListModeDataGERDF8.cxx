@@ -41,11 +41,16 @@ CListModeDataGERDF8(const std::string& listmode_filename)
       error("Error reading '" + listmode_filename + "' as GE RDF8 (not a listmode file)");
     }
 
+  nmtools::IO::ge::CRDF8EXAM exam_header;
+  if (!exam_header.Read(listmode_filename))
+    {
+      error("Error reading exam data from '" + listmode_filename + "' as GE RDF8");
+    }
+
   // initialise scanner_ptr before calling open_lm_file, as it is used in that function
 
-  warning("CListModeDataGERDF8: "
-	  "Assuming this is GERDF8 D690, but couldn't find scan start time etc");
-  auto scanner_sptr = std::make_shared<Scanner>(Scanner::Discovery690);
+  warning("CListModeDataGERDF8: didn't read start time etc");
+  shared_ptr<Scanner> scanner_sptr(Scanner::get_scanner_from_name(exam_header.getScannerDescription()));
   this->exam_info_sptr.reset(new ExamInfo);
 
   this->proj_data_info_sptr.reset(
