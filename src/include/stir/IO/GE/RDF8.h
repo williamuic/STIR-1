@@ -111,7 +111,13 @@ class RDF8Base
 protected: 
 
   RDF8HDROFFSETS _offsets;
-  bool ReadOffsets(const path_t);
+  //! open file, perform checks and sets _offsets
+  /*!
+    param[out] fin stream-object, will be set to (binary) stream
+    param[in] inFilePath
+    return \c true if successful (\a fin will be closed otherwise)
+  */
+  bool ReadOffsets(std::ifstream& fin, const path_t inFilePath);
 
   typedef std::pair<std::string, boost::any> DictionaryItem;
   typedef std::map<std::string, boost::any> Dictionary;
@@ -131,8 +137,8 @@ class CRDF8CONFIG : public RDF8Base
 public:
   CRDF8CONFIG(){};
 
-  bool Read(const path_t);
-  bool Write(const path_t path){return false;}; //TODO: Implement this
+  bool Read(const path_t) override;
+  bool Write(const path_t path) override {return false;} //TODO: Implement this
 
   float GetVersionNumber();
   bool  IsListFile() const { return _isListFile; }
@@ -177,6 +183,7 @@ public:
   const std::string getPatientDOB() const { return getGEDate(_patientBirthdate); };
   const std::string getStudyScanDate() const { return getGEDate(_measDateTime); };
   const std::string getStudyScanTime() const { return getGETime(_measDateTime); };
+  const std::string getScannerDescription() const { return _scannerDesc; }
 
 protected:
   int pad4(const int i) { return i - 1 + 4 - (i - 1) % 4; };
@@ -241,7 +248,7 @@ protected:
   friend std::ostream &operator<<(std::ostream &os, const CRDF8EXAM &rdf);
 };
 
-class CRDF8ACQ : public RDF8Base
+class CRDF8ACQSTATS : public RDF8Base
 {
 public:
 
@@ -268,8 +275,122 @@ protected:
   std::uint32_t _isRejectBin;
   std::uint32_t _frameStartCoincTStamp;
   std::uint32_t _readyToScanUTC;
-  std::uint32_t spares[5];
-  
+  std::uint32_t spares[5];  
+};
+
+class CRDF8SYSTEMGEO : public RDF8Base {
+ public:
+  bool Read(const path_t) override;
+
+  static constexpr unsigned RDF_MAX_PATH_SIZE = 180;
+  static constexpr unsigned RDF_MAX_SYS_PATH_SIZE = 256;
+  static constexpr unsigned RDF_NUM_MAJOR_RINGS_MAX = 6;
+  static constexpr unsigned RDF_NUM_MINOR_RINGS_MAX = 60;
+  static constexpr unsigned RDF_NUM_AXIAL_SLICES_MAX = (2*RDF_NUM_MINOR_RINGS_MAX)-1;
+  static constexpr unsigned RDF_CRYSTALS_PER_BLOCK_MAX = 120;
+
+
+  //protected:
+  std::uint32_t _radialModulesPerSystem;
+  std::uint32_t _radialBlocksPerModule;
+  std::uint32_t _radialCrystalsPerBlock;
+  std::uint32_t _axialModulesPerSystem;
+  std::uint32_t _axialBlocksPerModule;
+  std::uint32_t _axialCrystalsPerBlock;
+  float32_t _detectorRadialSize;
+  float32_t _detectorAxialSize;
+  float32_t _axialCrystalGap;
+  float32_t _radialCrystalGap;
+  float32_t _axialBlockGap;
+  float32_t _radialBlockGap;
+  float32_t _axialCassetteGap;
+  float32_t _radialCassetteGap;
+  float32_t _sourceRadius;
+  float32_t _collimatorInnerRadius;
+  float32_t _collimatorOuterRadius;
+  float32_t _delaysCorrectionFactor;
+  float32_t _effectiveRingDiameter;
+  std::uint32_t _blockRepeatFactor;
+  float32_t _interCrystalPitch;
+  float32_t _interBlockPitch;
+  float32_t _scatterHrParameters[10];
+  float32_t _scatterHsParameters[10];
+  float32_t _dt_intCorrectionConstant;
+  float32_t _dt_muxCorrectionConstant;
+  float32_t _dt_timingCorrectionConstant;
+  std::int32_t _numCoincAsics;
+  float32_t _dt_asicChipFactors[7];
+  float32_t _dt_3dasicChipFactors[7];
+  float32_t _dt_3dintCorrectionConstant;
+  float32_t _dt_3dmuxCorrectionConstant;
+  float32_t _dt_3dtimingCorrectionConstant;
+  float32_t _transaxial_crystal_0_offset;
+  float32_t _vqc_XaxisTranslation;
+  float32_t _vqc_YaxisTranslation;
+  float32_t _vqc_ZaxisTranslation;
+  float32_t _vqc_XaxisTilt;
+  float32_t _vqc_YaxisSwivel;
+  float32_t _vqc_ZaxisRoll;
+  std::uint32_t _scanner_first_slice;
+  std::uint32_t _collimatorType;
+  std::uint32_t _timingResolutionInPico;
+  float32_t _avgBlockDeadtime;
+  float32_t _avgCrystalSingles;
+  float32_t _spares[5];
+  float32_t _dt_crossRingFactors[RDF_NUM_MAJOR_RINGS_MAX];
+  float32_t _dt_3dpileUp_factors[RDF_NUM_MINOR_RINGS_MAX];
+  float32_t _dt_hrPileUp_factors[RDF_NUM_AXIAL_SLICES_MAX];
+  float32_t _dt_hsPileUp_factors[RDF_NUM_AXIAL_SLICES_MAX];
+  float32_t _dt_3dCrystalPileupFactors[RDF_CRYSTALS_PER_BLOCK_MAX];
+//bulk_spares = fread(fid, 8,'uint32');
+
+ protected:
+  bool populateDictionary() override;
+};
+
+class CRDF8SORTERDATA : public RDF8Base {
+  bool Read(const path_t) override;
+
+  //protected:
+  std::uint32_t _dataOrientation;
+  std::uint32_t _dimension1Size;
+  std::uint32_t _dimension2Size;
+  std::uint32_t _histogramCellSize;
+  std::uint32_t _sinoAlignCorr;
+  std::uint32_t _DHMErrorFifoDepth;
+  std::uint32_t _acquisitionNumber;
+  std::uint32_t _numberOfAcquisitions;
+
+/*
+%  data segment headers (0:7 possible segments)
+% Segment 0: Unused (Transmission Prompts, CTAC Raw Data)
+% Segment 1: Unused (Transmission Delays)
+% Segment 2: Emission Prompts
+% Segment 3: Unused (Emission Delays)
+% Segment 4: Cal
+% Segment 5: Unused
+% Segment 6: Unused
+% Segment 7: Unused (TOF orientation)
+*/
+ static constexpr unsigned numSegments = 8;
+ struct ACQDATASEGMENTPARAMS
+ {
+   std::uint32_t _segmentType;
+   std::uint32_t _dimension3Size;
+   std::uint32_t _numScaleFactors;
+   std::uint32_t _scaleFactorsOffset;
+   std::uint64_t _dataSegmentOffset;
+   std::uint64_t _compDataSegOffset;
+   std::uint64_t _compDataSegSize;
+   std::uint64_t _segFirstCvtEntryOffset;
+   std::uint32_t _segCvtEntries;
+   std::uint32_t _tofCollapsed;
+   std::uint32_t _spares[6];
+ };
+ ACQDATASEGMENTPARAMS _acqDataSegmentParams[numSegments];
+
+ protected:
+  bool populateDictionary() override;
 };
 
 class CRDF8LIST : public RDF8Base {

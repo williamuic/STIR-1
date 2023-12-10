@@ -84,11 +84,11 @@ bool RDF8Base::GetField(const std::string sid, boost::any &data) const
   return true;
 }
 
-bool RDF8Base::ReadOffsets(const path_t inFilePath)
+  bool RDF8Base::ReadOffsets(std::ifstream& fin, const path_t inFilePath)
 {
   //Reads the offsets from RDF8 file.
 
-  std::ifstream fin(tostring(inFilePath).c_str(), std::ios::in | std::ios::binary);
+  fin.open(tostring(inFilePath).c_str(), std::ios::in | std::ios::binary);
 
   uint32_t BOM;
 
@@ -96,7 +96,6 @@ bool RDF8Base::ReadOffsets(const path_t inFilePath)
   {
     fin.read(reinterpret_cast<char *>(&BOM), sizeof(uint32_t));
     fin.read(reinterpret_cast<char *>(&this->_offsets), sizeof(this->_offsets));
-    fin.close();
   }
   else
     return false;
@@ -105,46 +104,30 @@ bool RDF8Base::ReadOffsets(const path_t inFilePath)
 
   if (BOM != 0x0000FEFF)
   {
+    // TODO should check byte-swap
 #ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "BOM is not valid!";
 #else
     stir::error("GE RDF reader: first bytes invalid!");
 #endif
+    fin.close();
     return false;
   }
 
-#ifdef HAVE_BOOST_LOG
-  BOOST_LOG_TRIVIAL(debug) << "Exam offset = " << this->_offsets.petExamStructOffset << " bytes";
-#endif
-
-  return true;
-}
-
-bool CRDF8EXAM::Read(const path_t inFilePath)
-{
-  //Tries to read the exam portion of RDF8 file.
 #ifdef HAVE_BOOST_LOG
   int status = 0;
   char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
   BOOST_LOG_TRIVIAL(debug) << demangled << " - Reading...";
   free(demangled);
 #endif
+  return true;
+}
 
-  //TODO: Do file checking here. E.g. big or little endian.
-  if (!ReadOffsets(inFilePath))
+bool CRDF8EXAM::Read(const path_t inFilePath)
+{
+  std::ifstream fin;
+  if (!ReadOffsets(fin, inFilePath))
     return false;
-
-  std::ifstream fin(tostring(inFilePath).c_str(), std::ios::in | std::ios::binary);
-
-  if (!fin.is_open())
-  {
-#ifdef HAVE_BOOST_LOG
-    BOOST_LOG_TRIVIAL(error) << "Could not open input file! " << inFilePath;
-#else
-    stir::error("GE RDF8: could not open input file " + tostring(inFilePath));
-#endif
-    return false;
-  }
 
   //Go to exam block of header.
   fin.seekg(_offsets.petExamStructOffset);
@@ -798,27 +781,9 @@ std::ostream &operator<<(std::ostream &os, const CRDF8EXAM &rdf)
 bool CRDF8CONFIG::Read(const path_t inFilePath)
 {
   //Tries to read the config part of an RDF8 file.
-#ifdef HAVE_BOOST_LOG
-  int status = 0;
-  char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
-  BOOST_LOG_TRIVIAL(debug) << demangled << " - Reading...";
-  free(demangled);
-#endif
-
-  if (!ReadOffsets(inFilePath))
+  std::ifstream fin;
+  if (!ReadOffsets(fin, inFilePath))
     return false;
-
-  std::ifstream fin(tostring(inFilePath).c_str(), std::ios::in | std::ios::binary);
-
-  if (!fin.is_open())
-  {
-#ifdef HAVE_BOOST_LOG
-    BOOST_LOG_TRIVIAL(error) << "Could not open input file! " << inFilePath;
-#else
-    stir::error("Could not open input file " + tostring(inFilePath));
-#endif
-    return false;
-  }
 
   //Go to exam block of header.
   fin.seekg(_offsets.RDFConfigStructOffset);
@@ -923,30 +888,120 @@ std::ostream &operator<<(std::ostream &os, const CRDF8CONFIG &rdf)
   return os;
 }
 
+  bool CRDF8SYSTEMGEO::Read(const path_t inFilePath)
+  {
+    std::ifstream fin;
+    if (!ReadOffsets(fin, inFilePath))
+      return false;
+
+    //Go to block of header.
+    fin.seekg(_offsets.sysGeometryStructOffset);
+    fin.read(reinterpret_cast<char *>(&_radialModulesPerSystem), sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_radialBlocksPerModule), sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_radialCrystalsPerBlock), sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_axialModulesPerSystem), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_axialBlocksPerModule), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_axialCrystalsPerBlock), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_detectorRadialSize), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_detectorAxialSize), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_axialCrystalGap), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_radialCrystalGap), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_axialBlockGap), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_radialBlockGap), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_axialCassetteGap), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_radialCassetteGap), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_sourceRadius), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_collimatorInnerRadius), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_collimatorOuterRadius), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_delaysCorrectionFactor), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_effectiveRingDiameter), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_blockRepeatFactor), 1*sizeof(std::int32_t));
+    fin.read(reinterpret_cast<char *>(&_interCrystalPitch), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_interBlockPitch), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_scatterHrParameters), 10*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_scatterHsParameters), 10*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_intCorrectionConstant), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_muxCorrectionConstant), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_timingCorrectionConstant), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_numCoincAsics), 1*sizeof(std::int32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_asicChipFactors), 7*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_3dasicChipFactors), 7*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_3dintCorrectionConstant), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_3dmuxCorrectionConstant), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_3dtimingCorrectionConstant), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_transaxial_crystal_0_offset), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_vqc_XaxisTranslation), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_vqc_YaxisTranslation), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_vqc_ZaxisTranslation), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_vqc_XaxisTilt), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_vqc_YaxisSwivel), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_vqc_ZaxisRoll), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_scanner_first_slice), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_collimatorType), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_timingResolutionInPico), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_avgBlockDeadtime), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_avgCrystalSingles), 1*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_spares), 5*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_crossRingFactors), RDF_NUM_MAJOR_RINGS_MAX*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_3dpileUp_factors), RDF_NUM_MINOR_RINGS_MAX*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_hrPileUp_factors), RDF_NUM_AXIAL_SLICES_MAX*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_hsPileUp_factors), RDF_NUM_AXIAL_SLICES_MAX*sizeof(float32_t));
+    fin.read(reinterpret_cast<char *>(&_dt_3dCrystalPileupFactors), RDF_CRYSTALS_PER_BLOCK_MAX*sizeof(float32_t));
+    //bulk_spares = fread(fid, 8,'uint32');
+    return static_cast<bool>(fin);
+  }
+
+  bool CRDF8SYSTEMGEO::populateDictionary()
+  {
+    // TODO
+    return false;
+  }
+
+  bool CRDF8SORTERDATA::Read(const path_t inFilePath)
+  {
+    std::ifstream fin;
+    if (!ReadOffsets(fin, inFilePath))
+      return false;
+
+    fin.seekg(_offsets.sorterStructOffset);
+    fin.read(reinterpret_cast<char *>(&_dataOrientation), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_dimension1Size), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_dimension2Size), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_histogramCellSize), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_sinoAlignCorr), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_DHMErrorFifoDepth), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_acquisitionNumber), 1*sizeof(std::uint32_t));
+    fin.read(reinterpret_cast<char *>(&_numberOfAcquisitions), 1*sizeof(std::uint32_t));
+
+    for (unsigned seg = 0; seg < numSegments; ++seg)
+      {
+        fin.read(reinterpret_cast<char *>(&_acqDataSegmentParams[seg]._segmentType), 1*sizeof(std::uint32_t));
+        fin.read(reinterpret_cast<char *>(&_acqDataSegmentParams[seg]._dimension3Size), 1*sizeof(std::uint32_t));
+        fin.read(reinterpret_cast<char *>(&_acqDataSegmentParams[seg]._numScaleFactors), 1*sizeof(std::uint32_t));
+        fin.read(reinterpret_cast<char *>(&_acqDataSegmentParams[seg]._scaleFactorsOffset), 1*sizeof(std::uint32_t));
+        fin.read(reinterpret_cast<char *>(&_acqDataSegmentParams[seg]._dataSegmentOffset), 1*sizeof(std::uint64_t));
+        fin.read(reinterpret_cast<char *>(&_acqDataSegmentParams[seg]._compDataSegOffset), 1*sizeof(std::uint64_t));
+        fin.read(reinterpret_cast<char *>(&_acqDataSegmentParams[seg]._compDataSegSize), 1*sizeof(std::uint64_t));
+        fin.read(reinterpret_cast<char *>(&_acqDataSegmentParams[seg]._segFirstCvtEntryOffset), 1*sizeof(std::uint64_t));
+        fin.read(reinterpret_cast<char *>(&_acqDataSegmentParams[seg]._segCvtEntries), 1*sizeof(std::uint32_t));
+        fin.read(reinterpret_cast<char *>(&_acqDataSegmentParams[seg]._tofCollapsed), 1*sizeof(std::uint32_t));
+        fin.read(reinterpret_cast<char *>(&_acqDataSegmentParams[seg]._spares), 6*sizeof(std::uint32_t));
+      }
+    return static_cast<bool>(fin);
+  }
+
+  bool CRDF8SORTERDATA::populateDictionary()
+  {
+    // TODO
+    return false;
+  }
+
 bool CRDF8LIST::Read(const path_t inFilePath)
 {
   //Tries to read the list part of an RDF8 file.
-#ifdef HAVE_BOOST_LOG
-  int status = 0;
-  char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
-  BOOST_LOG_TRIVIAL(debug) << demangled << " - Reading...";
-  free(demangled);
-#endif
-
-  if (!ReadOffsets(inFilePath))
+  std::ifstream fin;
+  if (!ReadOffsets(fin, inFilePath))
     return false;
-
-  std::ifstream fin(tostring(inFilePath).c_str(), std::ios::in | std::ios::binary);
-
-  if (!fin.is_open())
-  {
-#ifdef HAVE_BOOST_LOG
-    BOOST_LOG_TRIVIAL(error) << "Could not open input file! " << inFilePath;
-#else
-    stir::error("Could not open input file: " + tostring(inFilePath));
-#endif
-    return false;
-  }
 
   //Go to block of header.
   fin.seekg(_offsets.listHeaderOffset);
