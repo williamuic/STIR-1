@@ -123,6 +123,14 @@ bool RDF8Base::GetField(const std::string sid, boost::any &data) const
   return true;
 }
 
+  static std::string readString(std::ifstream& fin, unsigned size)
+  {
+    char buf[size+1];
+    fin.read(&buf[0], size);
+    buf[size] = '\0';
+    return std::string(buf);
+  }
+    
 bool CRDF8EXAM::Read(const path_t inFilePath)
 {
   std::ifstream fin;
@@ -132,20 +140,9 @@ bool CRDF8EXAM::Read(const path_t inFilePath)
   //Go to exam block of header.
   fin.seekg(_offsets.petExamStructOffset);
 
-  //Patient ID
-  std::vector<char> buf(pad4(IDB_LEN_PATIENT_ID));
-  fin.read(&buf[0], buf.size());
-  _patientID = std::string(buf.begin(), buf.end());
-
-  //Patient name
-  buf.resize(pad4(IDB_LEN_PATIENT_NAME));
-  fin.read(&buf[0], buf.size());
-  _patientName = std::string(buf.begin(), buf.end());
-
-  //Patient DOB
-  buf.resize(pad4(IDB_LEN_DATETIME_STR));
-  fin.read(&buf[0], buf.size());
-  _patientBirthdate = std::string(buf.begin(), buf.end());
+ _patientID = readString(fin, pad4(IDB_LEN_PATIENT_ID));
+ _patientName = readString(fin, pad4(IDB_LEN_PATIENT_NAME));
+ _patientBirthdate = readString(fin, pad4(IDB_LEN_DATETIME_STR));
 
   //Patient sex
   fin.read(reinterpret_cast<char *>(&_patientSex), sizeof(uint32_t));
@@ -153,40 +150,20 @@ bool CRDF8EXAM::Read(const path_t inFilePath)
   //Exam ID
   fin.read(reinterpret_cast<char *>(&_examID), sizeof(uint32_t) * IDB_CNT_ID_INTS);
 
-  //Requisition
-  buf.resize(pad4(IDB_LEN_REQUISITION));
-  fin.read(&buf[0], buf.size());
-  _requisition = std::string(buf.begin(), buf.end());
+ _requisition = readString(fin, pad4(IDB_LEN_REQUISITION));
 
-  //Hospital name
-  buf.resize(pad4(IDB_LEN_HOSPITAL_NAME));
-  fin.read(&buf[0], buf.size());
-  _hospitalName = std::string(buf.begin(), buf.end());
+ _hospitalName = readString(fin, pad4(IDB_LEN_HOSPITAL_NAME));
 
-  //Scanner description
-  buf.resize(pad4(IDB_LEN_SCANNER_DESC));
-  fin.read(&buf[0], buf.size());
-  _scannerDesc = std::string(buf.begin(), buf.end());
+ _scannerDesc = readString(fin, pad4(IDB_LEN_SCANNER_DESC));
 
-  //Exam description
-  buf.resize(pad4(IDB_LEN_EXAM_DESC));
-  fin.read(&buf[0], buf.size());
-  _examDesc = std::string(buf.begin(), buf.end());
+ _examDesc = readString(fin, pad4(IDB_LEN_EXAM_DESC));
 
-  //Referring physician
-  buf.resize(pad4(IDB_LEN_REF_PHYSICIAN));
-  fin.read(&buf[0], buf.size());
-  _refPhysician = std::string(buf.begin(), buf.end());
+ _refPhysician = readString(fin, pad4(IDB_LEN_REF_PHYSICIAN));
 
-  //Diagnostician
-  buf.resize(pad4(IDB_LEN_DIAGNOSTICIAN));
-  fin.read(&buf[0], buf.size());
-  _diagnostician = std::string(buf.begin(), buf.end());
+ _diagnostician = readString(fin, pad4(IDB_LEN_DIAGNOSTICIAN));
 
   //Operator
-  buf.resize(pad4(IDB_LEN_OPERATOR));
-  fin.read(&buf[0], buf.size());
-  _operator = std::string(buf.begin(), buf.end());
+ _operator = readString(fin, pad4(IDB_LEN_OPERATOR));
 
   //Patient height
   fin.read(reinterpret_cast<char *>(&_patientHt), sizeof(float32_t));
@@ -194,66 +171,33 @@ bool CRDF8EXAM::Read(const path_t inFilePath)
   //Patient height
   fin.read(reinterpret_cast<char *>(&_patientWt), sizeof(float32_t));
 
-  //Patient history
-  buf.resize(pad4(IDB_LEN_PATIENT_HISTORY));
-  fin.read(&buf[0], buf.size());
-  _patientHistory = std::string(buf.begin(), buf.end());
+ _patientHistory = readString(fin, pad4(IDB_LEN_PATIENT_HISTORY));
 
-  //Patient history
-  buf.resize(pad4(IDB_LEN_MODALITY));
-  fin.read(&buf[0], buf.size());
-  _modality = std::string(buf.begin(), buf.end());
+ _modality = readString(fin, pad4(IDB_LEN_MODALITY));
 
-  //Manufacturer
-  buf.resize(pad4(IDB_LEN_MANUFACTURER));
-  fin.read(&buf[0], buf.size());
-  _manufacturer = std::string(buf.begin(), buf.end());
+ _manufacturer = readString(fin, pad4(IDB_LEN_MANUFACTURER));
 
   //Scan ID
   fin.read(reinterpret_cast<char *>(&_scanID), sizeof(uint32_t) * IDB_CNT_ID_INTS);
 
-  //Scan description
-  buf.resize(pad4(IDB_LEN_SCAN_DESCRIPTION));
-  fin.read(&buf[0], buf.size());
-  _scanDescription = std::string(buf.begin(), buf.end());
+ _scanDescription = readString(fin, pad4(IDB_LEN_SCAN_DESCRIPTION));
 
-  //Landmark name
-  buf.resize(pad4(IDB_LEN_LANDMARK_NAME));
-  fin.read(&buf[0], buf.size());
-  _landmarkName = std::string(buf.begin(), buf.end());
+ _landmarkName = readString(fin, pad4(IDB_LEN_LANDMARK_NAME));
 
-  //Landmark abbreviation
-  buf.resize(pad4(IDB_LEN_LANDMARK_ABBREV));
-  fin.read(&buf[0], buf.size());
-  _landmarkAbbrev = std::string(buf.begin(), buf.end());
+ _landmarkAbbrev = readString(fin, pad4(IDB_LEN_LANDMARK_ABBREV));
 
-  //Tracer name
-  buf.resize(pad4(IDB_LEN_TRACER_NAME));
-  fin.read(&buf[0], buf.size());
-  _tracerName = std::string(buf.begin(), buf.end());
+ _tracerName = readString(fin, pad4(IDB_LEN_TRACER_NAME));
 
-  //Batch description
-  buf.resize(pad4(IDB_LEN_BATCH_DESCRIPTION));
-  fin.read(&buf[0], buf.size());
-  _batchDescription = std::string(buf.begin(), buf.end());
+ _batchDescription = readString(fin, pad4(IDB_LEN_BATCH_DESCRIPTION));
 
   //Tracer activity
   fin.read(reinterpret_cast<char *>(&_tracerActivity), sizeof(float32_t));
 
-  //Measurement date/time
-  buf.resize(pad4(IDB_LEN_DATETIME_STR));
-  fin.read(&buf[0], buf.size());
-  _measDateTime = std::string(buf.begin(), buf.end());
+ _measDateTime = readString(fin, pad4(IDB_LEN_DATETIME_STR));
 
-  //Admin. date/time
-  buf.resize(pad4(IDB_LEN_DATETIME_STR));
-  fin.read(&buf[0], buf.size());
-  _adminDateTime = std::string(buf.begin(), buf.end());
+ _adminDateTime = readString(fin, pad4(IDB_LEN_DATETIME_STR));
 
-  //Radionuclide name
-  buf.resize(pad4(IDB_LEN_RADIONUCLIDE));
-  fin.read(&buf[0], buf.size());
-  _radionuclideName = std::string(buf.begin(), buf.end());
+ _radionuclideName = readString(fin, pad4(IDB_LEN_RADIONUCLIDE));
 
   //Half-life
   fin.read(reinterpret_cast<char *>(&_halfLife), sizeof(float32_t));
@@ -261,15 +205,9 @@ bool CRDF8EXAM::Read(const path_t inFilePath)
   //Source 1 activity
   fin.read(reinterpret_cast<char *>(&_source1Activity), sizeof(float32_t));
 
-  //Source 1 measurement date/time
-  buf.resize(pad4(IDB_LEN_DATETIME_STR));
-  fin.read(&buf[0], buf.size());
-  _source1MeasDateTime = std::string(buf.begin(), buf.end());
+ _source1MeasDateTime = readString(fin, pad4(IDB_LEN_DATETIME_STR));
 
-  //Source 1 radionuclide name
-  buf.resize(pad4(IDB_LEN_RADIONUCLIDE));
-  fin.read(&buf[0], buf.size());
-  _source1Radionuclide = std::string(buf.begin(), buf.end());
+ _source1Radionuclide = readString(fin, pad4(IDB_LEN_RADIONUCLIDE));
 
   //Source 1 half-life
   fin.read(reinterpret_cast<char *>(&_source1HalfLife), sizeof(float32_t));
@@ -277,33 +215,18 @@ bool CRDF8EXAM::Read(const path_t inFilePath)
   //Source 2 activity
   fin.read(reinterpret_cast<char *>(&_source2Activity), sizeof(float32_t));
 
-  //Source 2 measurement date/time
-  buf.resize(pad4(IDB_LEN_DATETIME_STR));
-  fin.read(&buf[0], buf.size());
-  _source2MeasDateTime = std::string(buf.begin(), buf.end());
+ _source2MeasDateTime = readString(fin, pad4(IDB_LEN_DATETIME_STR));
 
-  //Source 2 radionuclide name
-  buf.resize(pad4(IDB_LEN_RADIONUCLIDE));
-  fin.read(&buf[0], buf.size());
-  _source2Radionuclide = std::string(buf.begin(), buf.end());
+ _source2Radionuclide = readString(fin, pad4(IDB_LEN_RADIONUCLIDE));
 
   //Source 2 half-life
   fin.read(reinterpret_cast<char *>(&_source2HalfLife), sizeof(float32_t));
 
-  //Normal cal. ID
-  buf.resize(pad4(IDB_LEN_ID));
-  fin.read(&buf[0], buf.size());
-  _normalCalID = std::string(buf.begin(), buf.end());
+ _normalCalID = readString(fin, pad4(IDB_LEN_ID));
 
-  //Blank cal. ID
-  buf.resize(pad4(IDB_LEN_ID));
-  fin.read(&buf[0], buf.size());
-  _blankCalID = std::string(buf.begin(), buf.end());
+ _blankCalID = readString(fin, pad4(IDB_LEN_ID));
 
-  //wc cal. ID
-  buf.resize(pad4(IDB_LEN_ID));
-  fin.read(&buf[0], buf.size());
-  _wcCalID = std::string(buf.begin(), buf.end());
+ _wcCalID = readString(fin, pad4(IDB_LEN_ID));
 
   //Pre-injection volume
   fin.read(reinterpret_cast<char *>(&_preInjectionVolume), sizeof(float32_t));
@@ -311,41 +234,23 @@ bool CRDF8EXAM::Read(const path_t inFilePath)
   //Post-injection activity
   fin.read(reinterpret_cast<char *>(&_postInjectionActivity), sizeof(float32_t));
 
-  //Post-injection date/time
-  buf.resize(pad4(IDB_LEN_DATETIME_STR));
-  fin.read(&buf[0], buf.size());
-  _postInjectionDateTime = std::string(buf.begin(), buf.end());
+ _postInjectionDateTime = readString(fin, pad4(IDB_LEN_DATETIME_STR));
 
   //Positron fraction
   fin.read(reinterpret_cast<char *>(&_positronFraction), sizeof(float32_t));
 
-  //Scan ID DICOM
-  buf.resize(pad4(IDB_LEN_ID));
-  fin.read(&buf[0], buf.size());
-  _scanIdDicom = std::string(buf.begin(), buf.end());
+ _scanIdDicom = readString(fin, pad4(IDB_LEN_ID));
 
-  //Exam ID DICOM
-  buf.resize(pad4(IDB_LEN_ID));
-  fin.read(&buf[0], buf.size());
-  _examIdDicom = std::string(buf.begin(), buf.end());
+ _examIdDicom = readString(fin, pad4(IDB_LEN_ID));
 
-  //Normal 2d cal DICOM
-  buf.resize(pad4(IDB_LEN_ID));
-  fin.read(&buf[0], buf.size());
-  _normal2dCalID = std::string(buf.begin(), buf.end());
+ _normal2dCalID = readString(fin, pad4(IDB_LEN_ID));
 
-  //Patient ID DICOM
-  buf.resize(pad4(IDB_LEN_ID));
-  fin.read(&buf[0], buf.size());
-  _patientIdDicom = std::string(buf.begin(), buf.end());
+ _patientIdDicom = readString(fin, pad4(IDB_LEN_ID));
 
   //Patient type
   fin.read(reinterpret_cast<char *>(&_patientType), sizeof(uint32_t));
 
-  //Software version
-  buf.resize(pad4(IDB_LEN_ID));
-  fin.read(&buf[0], buf.size());
-  _softwareVersion = std::string(buf.begin(), buf.end());
+ _softwareVersion = readString(fin, pad4(IDB_LEN_ID));
 
   //Isotope has prompt gamma
   fin.read(reinterpret_cast<char *>(&_isotopeHasPromptGamma), sizeof(uint32_t));
