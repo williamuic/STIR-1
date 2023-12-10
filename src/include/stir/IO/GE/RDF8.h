@@ -26,11 +26,11 @@
 #include <map>
 #include <cstdint>
 //BOOST
-#include <boost/filesystem.hpp>
 #include <boost/any.hpp>
 
-namespace fs = boost::filesystem;
-
+#ifdef HAVE_BOOST_FILESYSTEM
+#include <boost/filesystem.hpp>
+#endif
 
 namespace nmtools
 {
@@ -39,6 +39,11 @@ namespace IO
 namespace ge
 {
   typedef float float32_t;
+#ifdef HAVE_BOOST_FILESYSTEM
+  typedef boost::filesystem::path path_t;
+#else
+  typedef std::string path_t;
+#endif
 
 //Contents of rdfConstants.m from GETPETToolbox
 const int ACQ_MAX_BINS = 64;
@@ -98,25 +103,25 @@ std::string getGETime(std::string time);
 class RDF8Base
 {
  public:
-  virtual bool Read(const fs::path) = 0;
-  virtual bool GetField(const std::string sid, boost::any &data) const = 0;
+  virtual bool Read(const path_t) = 0;
+  virtual bool GetField(const std::string sid, boost::any &data) const;
   virtual bool SetField(const std::string, const boost::any data){return false;}; //TODO: Implement this
-  virtual bool Write(const boost::filesystem::path path){return false;}; //TODO: Implement this
+  virtual bool Write(const path_t path){return false;}; //TODO: Implement this
 
 protected: 
 
   RDF8HDROFFSETS _offsets;
-  bool ReadOffsets(const fs::path);
+  bool ReadOffsets(const path_t);
 
   typedef std::pair<std::string, boost::any> DictionaryItem;
   typedef std::map<std::string, boost::any> Dictionary;
   std::unique_ptr<Dictionary> _dict;
 
   //Form dictionary after a successful read.
-  bool populateDictionary();
+  virtual bool populateDictionary() = 0;
 
   RDF8Base(){};
-  ~RDF8Base(){};
+  virtual ~RDF8Base(){};
 
 };
 
@@ -126,12 +131,9 @@ class CRDF8CONFIG : public RDF8Base
 public:
   CRDF8CONFIG(){};
 
-  bool Read(const fs::path);
-  bool GetField(const std::string sid, boost::any &data) const;
-  bool SetField(const std::string, const boost::any data){return false;}; //TODO: Implement this
-  bool Write(const boost::filesystem::path path){return false;}; //TODO: Implement this
+  bool Read(const path_t);
+  bool Write(const path_t path){return false;}; //TODO: Implement this
 
-  ~CRDF8CONFIG(){};
   float GetVersionNumber();
   bool  IsListFile() const { return _isListFile; }
 
@@ -156,15 +158,12 @@ class CRDF8EXAM : public RDF8Base
 {
 
 public:
-  CRDF8EXAM(){};
 
-  bool Read(const fs::path) override;
-  bool GetField(const std::string sid, boost::any &data) const override;
-  bool SetField(const std::string, const boost::any data) override {return false;} //TODO: Implement this
-  bool Write(const boost::filesystem::path path) override {return false;} //TODO: Implement this
+  bool Read(const path_t) override;
+  bool Write(const path_t path) override {return false;} //TODO: Implement this
 
-  bool WriteFile(const fs::path, const fs::path);
-  bool WriteFile(const fs::path, const fs::path, std::string);
+  bool WriteFile(const path_t, const path_t);
+  bool WriteFile(const path_t, const path_t, std::string);
 
   bool SetPatientID(std::string newID);
   bool SetPatientDicomID(std::string newID);
@@ -178,8 +177,6 @@ public:
   const std::string getPatientDOB() const { return getGEDate(_patientBirthdate); };
   const std::string getStudyScanDate() const { return getGEDate(_measDateTime); };
   const std::string getStudyScanTime() const { return getGETime(_measDateTime); };
-
-  ~CRDF8EXAM(){};
 
 protected:
   int pad4(const int i) { return i - 1 + 4 - (i - 1) % 4; };
@@ -248,8 +245,7 @@ class CRDF8ACQ : public RDF8Base
 {
 public:
 
-  bool Read(const fs::path) override;
-  bool GetField(const std::string sid, boost::any &data) const override;
+  bool Read(const path_t) override;
 
 protected:
   std::uint32_t _termCondition;
@@ -280,8 +276,7 @@ class CRDF8LIST : public RDF8Base {
  public:
 
   static const unsigned RDF_NUM_LIST_COMPRESS_ALG_COEFS = 4U;
-  bool Read(const fs::path) override;
-  bool GetField(const std::string sid, boost::any &data) const override;
+  bool Read(const path_t) override;
 
   std::uint32_t GetListStartOffset() const { return _listStartOffset; }
   std::uint32_t IsListCompressed() const { return _isListCompressed; }

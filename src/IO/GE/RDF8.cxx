@@ -3,7 +3,7 @@
 
    Author:      Benjamin A. Thomas
 
-   Copyright 2017 Institute of Nuclear Medicine, University College London.
+   Copyright 2017, 2023 Institute of Nuclear Medicine, University College London.
 
    This file is part of STIR.
 
@@ -16,18 +16,28 @@
  */
 
 #include "stir/IO/GE/RDF8.h"
-
+#ifdef HAVE_BOOST_LOG
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/lexical_cast.hpp>
+#else
+#include "stir/warning.h"
+#include "stir/info.h"
+#include "stir/error.h"
+#endif
+#ifndef HAVE_BOOST_FILESYSTEM
+#include <stdio.h> // for tmpnam
+#include "stir/FilePath.h"
+#endif
+
+#ifdef HAVE_BOOST_DATETIME
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/gregorian/conversion.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-
-using namespace boost::gregorian;
+#endif
 
 namespace nmtools
 {
@@ -35,11 +45,50 @@ namespace IO
 {
 namespace ge
 {
-bool RDF8Base::ReadOffsets(const fs::path inFilePath)
+  static std::string tostring(const path_t path)
+  {
+#ifdef HAVE_BOOST_FILESYSTEM
+    return path.string();
+#else
+    return path;
+#endif
+  }
+
+bool RDF8Base::GetField(const std::string sid, boost::any &data) const
+{
+
+  if (_dict == nullptr)
+  {
+#ifdef HAVE_BOOST_LOG
+    BOOST_LOG_TRIVIAL(error) << "GE RDF8: dictionary is NULL! File not read yet?";
+#else
+    stir::error("GE RDF8 dictionary is NULL! File not read yet?");
+#endif
+    return false;
+  }
+
+  try
+  {
+    data = _dict->at(sid);
+  }
+  catch (std::out_of_range &e)
+  {
+#ifdef HAVE_BOOST_LOG
+    BOOST_LOG_TRIVIAL(error) << e.what();
+    BOOST_LOG_TRIVIAL(warning) << sid << " not found!";
+#else
+    stir::warning("GE RDF8 GetField: " + sid + " not found. Error: " + e.what());
+#endif
+  }
+
+  return true;
+}
+
+bool RDF8Base::ReadOffsets(const path_t inFilePath)
 {
   //Reads the offsets from RDF8 file.
 
-  std::ifstream fin(inFilePath.string().c_str(), std::ios::in | std::ios::binary);
+  std::ifstream fin(tostring(inFilePath).c_str(), std::ios::in | std::ios::binary);
 
   uint32_t BOM;
 
@@ -52,36 +101,48 @@ bool RDF8Base::ReadOffsets(const fs::path inFilePath)
   else
     return false;
 
-  BOOST_LOG_TRIVIAL(debug) << "BOM = " << std::hex << BOM;
+  // BOOST_LOG_TRIVIAL(debug) << "BOM = " << std::hex << BOM;
 
   if (BOM != 0x0000FEFF)
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "BOM is not valid!";
+#else
+    stir::error("GE RDF reader: first bytes invalid!");
+#endif
     return false;
   }
 
+#ifdef HAVE_BOOST_LOG
   BOOST_LOG_TRIVIAL(debug) << "Exam offset = " << this->_offsets.petExamStructOffset << " bytes";
+#endif
 
   return true;
 }
 
-bool CRDF8EXAM::Read(const fs::path inFilePath)
+bool CRDF8EXAM::Read(const path_t inFilePath)
 {
   //Tries to read the exam portion of RDF8 file.
+#ifdef HAVE_BOOST_LOG
   int status = 0;
   char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
   BOOST_LOG_TRIVIAL(debug) << demangled << " - Reading...";
   free(demangled);
+#endif
 
   //TODO: Do file checking here. E.g. big or little endian.
   if (!ReadOffsets(inFilePath))
     return false;
 
-  std::ifstream fin(inFilePath.string().c_str(), std::ios::in | std::ios::binary);
+  std::ifstream fin(tostring(inFilePath).c_str(), std::ios::in | std::ios::binary);
 
   if (!fin.is_open())
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "Could not open input file! " << inFilePath;
+#else
+    stir::error("GE RDF8: could not open input file " + tostring(inFilePath));
+#endif
     return false;
   }
 
@@ -320,10 +381,14 @@ bool CRDF8EXAM::populateDictionary(){
   //C++17 std::make_unique
 
   if (this->_dict == nullptr) {
+#ifdef HAVE_BOOST_LOG
     int status = 0;
     char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
     BOOST_LOG_TRIVIAL(error) << demangled << "::populateDictionary - Cannot allocate RDF8 dictionary!";
     free(demangled);
+#else
+    stir::error("GE RDF8: populateDictionary - Cannot allocate dictionary");
+#endif
     return false;
   }
 
@@ -341,58 +406,66 @@ bool CRDF8EXAM::populateDictionary(){
   return true;
 }
 
-bool CRDF8EXAM::GetField(const std::string sid, boost::any &data) const
-{
-
-  if (_dict == nullptr)
-  {
-    BOOST_LOG_TRIVIAL(error) << "RDF8 Exam dictionary appears to be NULL!";
-    return false;
-  }
-
-  try
-  {
-    data = _dict->at(sid);
-  }
-  catch (std::out_of_range &e)
-  {
-    BOOST_LOG_TRIVIAL(error) << e.what();
-    BOOST_LOG_TRIVIAL(warning) << sid << " not found!";
-  }
-
-  return true;
-}
-
-bool CRDF8EXAM::WriteFile(const fs::path srcFile, const fs::path dstFile)
+bool CRDF8EXAM::WriteFile(const path_t srcFile, const path_t dstFile)
 {
   //Opens srcFile as RDF8 and writes new file, dstFile, with
   //modified header.
 
   if (srcFile == dstFile)
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "Refusing to overwrite input file!";
+#else
+    stir::error("Refusing to overwrite input file!");
+#endif
     return false;
   }
 
+#ifdef HAVE_BOOST_FILESYSTEM
   if (fs::exists(dstFile))
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "Refusing to overwrite existing output file!";
+#else
+    stir::error("Refusing to overwrite existing output file!");
+#endif
     return false;
   }
+#else
+  if (stir::FilePath::exists(dstFile))
+    stir::error("Refusing to overwrite existing output file!");
+#endif
 
-  fs::path tmpFile = boost::filesystem::unique_path();
-
+#ifdef HAVE_BOOST_FILESYSTEM
+  path_t tmpFile = boost::filesystem::unique_path();
   try
   {
     fs::copy(srcFile, tmpFile);
   }
   catch (fs::filesystem_error &e)
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "Could not copy " << srcFile << " to " << tmpFile;
+#else
+    stir::error("Could not copy " + tostring(srcFile) + " to " + tostring(tmpFile));
+#endif
     return false;
   }
+#else
+  // TODO tmpnam is considered insecure.
+  path_t tmpFile = tmpnam(NULL);
+  {
+    std::ifstream  src(tostring(srcFile).c_str(), std::ios::binary);
+    std::ofstream  dst(tostring(tmpFile).c_str(), std::ios::binary);
 
-  std::fstream fout(tmpFile.string().c_str(), std::ios::in | std::ios::out | std::ios::binary);
+    if (!src || !dst)
+      stir::error("Could not copy " + tostring(srcFile) + " to " + tostring(tmpFile));
+
+    dst << src.rdbuf();
+  }
+#endif
+
+  std::fstream fout(tostring(tmpFile).c_str(), std::ios::in | std::ios::out | std::ios::binary);
   if (fout.is_open())
   {
     fout.seekp(_offsets.petExamStructOffset);
@@ -453,16 +526,24 @@ bool CRDF8EXAM::WriteFile(const fs::path srcFile, const fs::path dstFile)
     //fs::resize_file(tmpFile, pos);
   }
 
+#ifdef HAVE_BOOST_FILESYSTEM
   try
   {
     fs::rename(tmpFile, dstFile);
   }
   catch (fs::filesystem_error &e)
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "Could not copy" << tmpFile << " to " << dstFile;
+#else
+    stir::error("Could not copy" + tostring(tmpFile) + " to " + tostring(dstFile));
+#endif
     return false;
   }
-
+#else
+ if (!rename(tmpFile.c_str(), dstFile.c_str()))
+   stir::error("Could not copy" + tostring(tmpFile) + " to " + tostring(dstFile));
+#endif
   return true;
 }
 
@@ -472,7 +553,11 @@ bool CRDF8EXAM::CleanField(std::string &target, const std::size_t constraint, st
   //length for header. E.g. IDB_LEN_PATIENT_ID.
   if (newVal.size() > constraint)
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "New requested string: '" << newVal << "' exceeds allowable length!";
+#else
+    stir::error("GE RDF8: New requested string: '" + newVal + "' exceeds allowable length!");
+#endif
     return false;
   }
 
@@ -507,7 +592,11 @@ bool CRDF8EXAM::SetExamUID(std::string newExamUID)
   //Sets a new DICOM exam UID
   if (!dcm::IsValidUID(newExamUID.c_str()))
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "Cannot set exam UID to " << newExamUID << " : " << newExamUID.size();
+#else
+    stir::error("GE RDF8: Cannot set exam UID to " + newExamUID);
+#endif
     return false;
   }
 #endif
@@ -520,7 +609,11 @@ bool CRDF8EXAM::SetScanUID(std::string newScanUID)
 #if 0
   if (!dcm:(newScanUID.c_str()))
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "Cannot set scan UID to " << newScanUID << " : " << newScanUID.size();
+#else
+    stir::error("GE RDF8: Cannot set scan UID to " + newExamUID);
+#endif
     return false;
   }
 #endif
@@ -702,22 +795,28 @@ std::ostream &operator<<(std::ostream &os, const CRDF8EXAM &rdf)
   return os;
 }
 
-bool CRDF8CONFIG::Read(const fs::path inFilePath)
+bool CRDF8CONFIG::Read(const path_t inFilePath)
 {
   //Tries to read the config part of an RDF8 file.
+#ifdef HAVE_BOOST_LOG
   int status = 0;
   char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
   BOOST_LOG_TRIVIAL(debug) << demangled << " - Reading...";
   free(demangled);
+#endif
 
   if (!ReadOffsets(inFilePath))
     return false;
 
-  std::ifstream fin(inFilePath.string().c_str(), std::ios::in | std::ios::binary);
+  std::ifstream fin(tostring(inFilePath).c_str(), std::ios::in | std::ios::binary);
 
   if (!fin.is_open())
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "Could not open input file! " << inFilePath;
+#else
+    stir::error("Could not open input file " + tostring(inFilePath));
+#endif
     return false;
   }
 
@@ -752,10 +851,14 @@ bool CRDF8CONFIG::populateDictionary(){
   //C++17 std::make_unique
 
   if (this->_dict == nullptr) {
+#ifdef HAVE_BOOST_LOG
     int status = 0;
     char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
     BOOST_LOG_TRIVIAL(error) << demangled << "::populateDictionary - Cannot allocate RDF8 dictionary!";
     free(demangled);
+#else
+    stir::error("GE RDF8: cannot allocation dictionary");
+#endif
     return false;
   }
 
@@ -769,31 +872,6 @@ bool CRDF8CONFIG::populateDictionary(){
   return true;
 }
 
-
-bool CRDF8CONFIG::GetField(const std::string sid, boost::any &data) const
-{
-
-  if (_dict == nullptr)
-  {
-    int status = 0;
-    char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
-    BOOST_LOG_TRIVIAL(error) << demangled << " - Dictionary appears to be NULL!";
-    free(demangled);
-    return false;
-  }
-
-  try
-  {
-    data = _dict->at(sid);
-  }
-  catch (std::out_of_range &e)
-  {
-    BOOST_LOG_TRIVIAL(error) << e.what();
-    BOOST_LOG_TRIVIAL(warning) << sid << " not found!";
-  }
-
-  return true;
-}
 
 float CRDF8CONFIG::GetVersionNumber()
 {
@@ -809,7 +887,11 @@ float CRDF8CONFIG::GetVersionNumber()
   }
   catch (...)
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "Could not read version number!";
+#else
+    stir::warning("GE RDF8: Could not read version number!");
+#endif
     return -1;
   }
 
@@ -841,48 +923,28 @@ std::ostream &operator<<(std::ostream &os, const CRDF8CONFIG &rdf)
   return os;
 }
 
-bool CRDF8ACQ::GetField(const std::string sid, boost::any &data) const
-{
-
-  if (_dict == nullptr)
-  {
-    int status = 0;
-    char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
-    BOOST_LOG_TRIVIAL(error) << demangled << " - Dictionary appears to be NULL!";
-    free(demangled);
-    return false;
-  }
-
-  try
-  {
-    data = _dict->at(sid);
-  }
-  catch (std::out_of_range &e)
-  {
-    BOOST_LOG_TRIVIAL(error) << e.what();
-    BOOST_LOG_TRIVIAL(warning) << sid << " not found!";
-    return false;
-  }
-
-  return true;
-}
-
-bool CRDF8LIST::Read(const fs::path inFilePath)
+bool CRDF8LIST::Read(const path_t inFilePath)
 {
   //Tries to read the list part of an RDF8 file.
+#ifdef HAVE_BOOST_LOG
   int status = 0;
   char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
   BOOST_LOG_TRIVIAL(debug) << demangled << " - Reading...";
   free(demangled);
+#endif
 
   if (!ReadOffsets(inFilePath))
     return false;
 
-  std::ifstream fin(inFilePath.string().c_str(), std::ios::in | std::ios::binary);
+  std::ifstream fin(tostring(inFilePath).c_str(), std::ios::in | std::ios::binary);
 
   if (!fin.is_open())
   {
+#ifdef HAVE_BOOST_LOG
     BOOST_LOG_TRIVIAL(error) << "Could not open input file! " << inFilePath;
+#else
+    stir::error("Could not open input file: " + tostring(inFilePath));
+#endif
     return false;
   }
 
@@ -919,10 +981,14 @@ bool CRDF8LIST::populateDictionary(){
   //C++17 std::make_unique
 
   if (this->_dict == nullptr) {
+#ifdef HAVE_BOOST_LOG
     int status = 0;
     char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
     BOOST_LOG_TRIVIAL(error) << demangled << "::populateDictionary - Cannot allocate RDF8 dictionary!";
     free(demangled);
+#else
+    stir::error("GE RDF8: cannot allocation dictionary");
+#endif
     return false;
   }
 
@@ -944,33 +1010,6 @@ bool CRDF8LIST::populateDictionary(){
   return true;
 }
 
-
-bool CRDF8LIST::GetField(const std::string sid, boost::any &data) const
-{
-
-  if (_dict == nullptr)
-  {
-    int status = 0;
-    char* demangled = abi::__cxa_demangle(typeid(*this).name(), 0, 0, &status);
-    BOOST_LOG_TRIVIAL(error) << demangled << " - Dictionary appears to be NULL!";
-    free(demangled);
-    return false;
-  }
-
-  try
-  {
-    data = _dict->at(sid);
-  }
-  catch (std::out_of_range &e)
-  {
-    BOOST_LOG_TRIVIAL(error) << e.what();
-    BOOST_LOG_TRIVIAL(warning) << sid << " not found!";
-    return false;
-  }
-
-  return true;
-}
-
 std::string getGEDate(std::string date){
 //Extracts date from RDF date/time field.
 
@@ -979,7 +1018,9 @@ std::string getGEDate(std::string date){
     return "NODATE";
   }
 
+#ifdef HAVE_BOOST_DATETIME
   boost::gregorian::date dateOnly;
+  using namespace boost::gregorian;
 
   try {
     dateOnly = from_undelimited_string(date.substr(0,8));
@@ -989,6 +1030,9 @@ std::string getGEDate(std::string date){
   }
 
   return to_iso_extended_string(dateOnly);
+#else
+  return date.substr(0,8);
+#endif
 }
 
 std::string getGETime(std::string time){
