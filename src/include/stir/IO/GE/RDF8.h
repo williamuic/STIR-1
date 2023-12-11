@@ -2,8 +2,9 @@
    RDF8.h
 
    Author:      Benjamin A. Thomas
+   Author:      Kris Thielemans
 
-   Copyright 2017 Institute of Nuclear Medicine, University College London.
+   Copyright 2017, 2023 Institute of Nuclear Medicine, University College London.
 
    This file is part of STIR.
 
@@ -25,6 +26,7 @@
 #include <string>
 #include <map>
 #include <cstdint>
+#include <memory>
 //BOOST
 #include <boost/any.hpp>
 
