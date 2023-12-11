@@ -1,6 +1,7 @@
 /*
     Copyright (C) 2003-2011 Hammersmith Imanet Ltd (CListRecordECAT.h)
     Copyright (C) 2013 University College London (major mods for GE Dimension data)
+    Copyright (C) 2023 University College London RDF8
     This file is part of STIR.
 
     SPDX-License-Identifier: Apache-2.0
@@ -10,7 +11,7 @@
 /*!
   \file
   \ingroup listmode
-  \brief Classes for listmode records of GE Dimension console data
+  \brief Classes for listmode records of GE RDF8 console data
     
   \author Kris Thielemans
 */
@@ -20,6 +21,7 @@
 
 #include "stir/listmode/CListRecord.h"
 #include "stir/listmode/ListTime.h"
+#include "stir/listmode/ListGatingInput.h"
 #include "stir/listmode/CListEventCylindricalScannerWithDiscreteDetectors.h"
 #include "stir/Succeeded.h"
 #include "stir/ByteOrder.h"
@@ -54,7 +56,7 @@ enum ExtendedEvtType
 };
 
 
-//! Class for storing and using a coincidence event from a GE Dimension listmode file
+//! Class for storing and using a coincidence event from a GE RDF8 listmode file
 /*! \ingroup listmode
   This class cannot have virtual functions, as it needs to just store the data 4 bytes for CListRecordGERDF8 to work.
 */
@@ -161,68 +163,61 @@ private:
   { return data.timeMarkMid; }
 };
 
-#if 0
-//! A class for storing and using a trigger 'event' from a GE Dimension listmode file
+//! A class for storing and using a trigger 'event' from a GE RDF8 listmode file
 /*! \ingroup listmode
-  This class cannot have virtual functions, as it needs to just store the data 8 bytes for CListRecordGERDF8 to work.
+  This class cannot have virtual functions, as it needs to just store the data 6 bytes for CListRecordGERDF8 to work.
  */
 class CListGatingDataGERDF8
 {
  public:
-  #if 0
-  inline unsigned long get_time_in_millisecs() const
-    { return (time_hi()<<24) | time_lo(); }
-  inline Succeeded set_time_in_millisecs(const unsigned long time_in_millisecs)
-    { 
-      words[0].value = ((1UL<<24)-1) & (time_in_millisecs); 
-      words[1].value = (time_in_millisecs) >> 24; 
-      // TODO return more useful value
-      return Succeeded::yes;
-    }
-  #endif
   inline bool is_gating_input() const
-    { return (words[0].signature==21) && (words[1].signature==29); }
+  { return (data.eventType == PHYS1_TRIG_EVT) || (data.eventType == PHYS2_TRIG_EVT); }
   inline unsigned int get_gating() const
-    { return words[0].reserved; } // return "reserved" bits. might be something in there
+  { return data.eventType; }
   inline Succeeded set_gating(unsigned int g) 
-    { words[0].reserved = g&7; return Succeeded::yes; }
+  { data.eventType = g&7; return Succeeded::yes; }
       
 private:
   typedef union{
     struct {
 #if STIRIsNativeByteOrderBigEndian
-      std::uint32_t signature : 5;
-      std::uint32_t reserved : 3;
-      std::uint32_t value : 24; // timing info here in the first word, but we're ignoring it
+	std::uint16_t eoem:4;			/* End Of Event Mark (should equal EOE constant) */
+	std::uint16_t discrete:1;		/* boolean (true:discrete, false:continuous) */
+	std::uint16_t unused:3;		/* Undefined */
+	std::uint16_t amplitude:8;		/* Amplitude (or undefined if discrete=true) */
+	std::uint16_t triggerCount:16;	/* Middle Significant Time Mark Bits */
+	std::uint16_t phase:8;			/* Phase (or undefined if discrete=true) */
+	std::uint16_t eventType:4;		/* eventType=PHYS1_TRIG_EVT or PHYS2_TRIG_EVT */
+	std::uint16_t coinc:1;			/* boolean (should always be false: non-Coinc) */
+	std::uint16_t soem:3;			/* Start Of Event Mark (should equal SOE constant) */
 #else
-      std::uint32_t value : 24;
-      std::uint32_t reserved : 3;
-      std::uint32_t signature : 5;
+	std::uint16_t soem:3;			/* Start Of Event Mark (should equal SOE constant) */
+	std::uint16_t coinc:1;			/* boolean (should always be false: non-Coinc) */
+	std::uint16_t eventType:4;		/* eventType=PHYS1_TRIG_EVT or PHYS2_TRIG_EVT */
+	std::uint16_t phase:8;			/* Phase (or undefined if discrete=true) */
+	std::uint16_t triggerCount:16;	/* Middle Significant Time Mark Bits */
+	std::uint16_t amplitude:8;		/* Amplitude (or undefined if discrete=true) */
+	std::uint16_t unused:3;		/* Undefined */
+	std::uint16_t discrete:1;		/* boolean (true:discrete, false:continuous) */
+	std::uint16_t eoem:4;			/* End Of Event Mark (should equal EOE constant) */
 #endif
-    };      
-    std::uint32_t raw;
-  } oneword_t;
-  oneword_t words[2];
+    };
+  } data_t;
+  data_t data;
 };
 
-#endif
-
-//! A class for a general element (or "record") of a GE Dimension listmode file
+//! A class for a general element (or "record") of a GE RDF8 listmode file
 /*! \ingroup listmode
   All types of records are stored in a (private) union with the "basic" classes such as CListEventDataGERDF8.
   This class essentially just forwards the work to the "basic" classes.
 
-  A complication for GE Dimension data is that not all events are the same size:
-  coincidence events are 4 bytes, and others are 8 bytes. 
-
-  \todo Currently we always assume the data is from a DSTE. We should really read this from the RDF header.
 */
-class CListRecordGERDF8 : public CListRecord, public ListTime, // public CListGatingInput,
+class CListRecordGERDF8 : public CListRecord, public ListTime, public ListGatingInput,
     public  CListEventCylindricalScannerWithDiscreteDetectors
 {
   typedef CListEventDataGERDF8 DataType;
   typedef CListTimeDataGERDF8 TimeType;
-  //typedef CListGatingDataGERDF8 GatingType;
+  typedef CListGatingDataGERDF8 GatingType;
 
  public:  
   CListRecordGERDF8(const shared_ptr<const ProjDataInfo>& proj_data_info_sptr) :
@@ -233,12 +228,10 @@ class CListRecordGERDF8 : public CListRecord, public ListTime, // public CListGa
   { 
    return this->time_data.is_time();
   }
-#if 0
   bool is_gating_input() const
   {
     return this->gating_data.is_gating_input();
   }
-#endif
 
   bool is_event() const
   { return this->event_data.is_event(); }
@@ -250,12 +243,10 @@ class CListRecordGERDF8 : public CListRecord, public ListTime, // public CListGa
     { return *this; }
   virtual const ListTime&   time() const
     { return *this; }
-#if 0
-  virtual CListGatingInput&  gating_input()
+  virtual ListGatingInput&  gating_input()
     { return *this; }
-  virtual const CListGatingInput&  gating_input() const
+  virtual const ListGatingInput&  gating_input() const
   { return *this; }
-#endif
   bool operator==(const CListRecord& e2) const
   {
     return false;
@@ -272,12 +263,10 @@ dynamic_cast<CListRecordGERDF8 const *>(&e2) != 0 &&
     { return time_data.get_time_in_millisecs(); }
   inline Succeeded set_time_in_millisecs(const unsigned long time_in_millisecs)
     { return time_data.set_time_in_millisecs(time_in_millisecs); }
-#if 0
   inline unsigned int get_gating() const
     { return gating_data.get_gating(); }
   inline Succeeded set_gating(unsigned int g) 
     { return gating_data.set_gating(g); }
-#endif
   // event
   inline bool is_prompt() const { return event_data.is_prompt(); }
   inline Succeeded set_prompt(const bool prompt = true) 
@@ -346,13 +335,13 @@ private:
   union {
     DataType  event_data;
     TimeType   time_data; 
-    //GatingType gating_data;
+    GatingType gating_data;
     std::int32_t  raw[2];
   };
   BOOST_STATIC_ASSERT(sizeof(std::int32_t)==4);
   BOOST_STATIC_ASSERT(sizeof(DataType)==6); 
   BOOST_STATIC_ASSERT(sizeof(TimeType)==6); 
-  //BOOST_STATIC_ASSERT(sizeof(GatingType)==8); 
+  BOOST_STATIC_ASSERT(sizeof(GatingType)==6); 
 
 };
 
