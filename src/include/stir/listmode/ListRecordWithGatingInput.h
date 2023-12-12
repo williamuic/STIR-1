@@ -3,7 +3,7 @@
 /*!
   \file
   \ingroup listmode
-  \brief Declarations of classes stir::ListRecordWithGatingInput which
+  \brief Declarations of class stir::ListRecordWithGatingInput which
   is used for list mode data.
 
   \author Daniel Deidda
@@ -24,12 +24,18 @@
 #ifndef __stir_listmode_ListRecordWithGatingInput_H__
 #define __stir_listmode_ListRecordWithGatingInput_H__
 
-#include "ListRecord.h"
-#include "ListGatingInput.h"
-#include "stir/Succeeded.h"
+#include "stir/listmode/ListRecord.h"
 
 START_NAMESPACE_STIR
 
+class ListGatingInput;
+
+/*!
+  \ingroup listmode
+
+  \brief Base-class for list-mode records where gating information
+  (such as triggers from external monitors) is available.
+*/
 class ListRecordWithGatingInput : public virtual ListRecord
 {
  public:

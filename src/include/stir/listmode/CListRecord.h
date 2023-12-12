@@ -16,7 +16,7 @@
     Copyright (C) 2003- 2011, Hammersmith Imanet Ltd
     Copyright (C) 2016, University of Hull
     Copyright (C) 2019, National Physical Laboratory
-    Copyright (C) 2019, University College of London
+    Copyright (C) 2019, 2023, University College of London
     This file is part of STIR.
 
     SPDX-License-Identifier: Apache-2.0
@@ -27,12 +27,15 @@
 #ifndef __stir_listmode_CListRecord_H__
 #define __stir_listmode_CListRecord_H__
 
-#include "ListRecord.h"
+#include "stir/listmode/ListRecord.h"
+#include "stir/listmode/ListRecordWithGatingInput.h"
 
 START_NAMESPACE_STIR
 class Bin;
 class ProjDataInfo;
 class Succeeded;
+class ListGatingInput;
+
 template <typename coordT> class CartesianCoordinate3D;
 template <typename coordT> class LORAs2Points;
 
@@ -42,10 +45,10 @@ template <typename coordT> class LORAs2Points;
     detected counts) in the list mode stream.
 
     \todo this is still under development. Things to add are for instance
-    energy windows and time-of-flight info. Also, get_bin() would need
+    energy windows. Also, get_bin() would need
     time info or so for rotating scanners.
 
-    \see CListModeData for more info on list mode data. 
+    \see CListModeData for more info on PET list mode data. 
 */
 class CListEvent : public ListEvent
 {
@@ -64,7 +67,7 @@ protected:
 
 }; /*-coincidence event*/
 
-class CListRecord : public ListRecord
+class CListRecord : public virtual ListRecord
 {
 public:
   
@@ -75,8 +78,9 @@ public:
          "hold timing and spatial information.");}
 };
 
-class CListRecordWithGatingInput : public CListRecord
-{};
+class CListRecordWithGatingInput : public CListRecord, public ListRecordWithGatingInput
+{
+};
 
 END_NAMESPACE_STIR
 

@@ -70,7 +70,7 @@ protected:
         return sptr1;}
 
   virtual Succeeded get_next(ListRecord& event) const
-  {return this->get_next_record((CListRecord&)(event));}
+  {return this->get_next_record(dynamic_cast<CListRecord&>(event));}
 };
 
 END_NAMESPACE_STIR

@@ -25,7 +25,7 @@
 
 
 #include "stir/listmode/ListTime.h"
-#include "ListRecord.h"
+#include "stir/listmode/ListRecord.h"
 #include "stir/listmode/SPECTListEvent.h"
 
 #include "stir/round.h"
@@ -42,19 +42,13 @@ START_NAMESPACE_STIR
 
     \see SPECTListModeData for more info on list mode data.
 */
-class SPECTListRecord : public ListRecord
+class SPECTListRecord : public virtual ListRecord
 {
 public:
 //  virtual ~SPECTListRecord() {}
 
-  virtual bool is_time() const = 0;
-
-  virtual bool is_event() const = 0;
-
   virtual SPECTListEvent&  event() = 0;
   virtual const SPECTListEvent&  event() const = 0;
-  virtual ListTime&   time() = 0;
-  virtual const ListTime&   time() const = 0;
 
   virtual bool operator==(const SPECTListRecord& e2) const = 0;
   bool operator!=(const SPECTListRecord& e2) const { return !(*this == e2); }
