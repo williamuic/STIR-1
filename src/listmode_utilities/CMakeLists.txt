@@ -22,6 +22,7 @@ set(${dir_EXE_SOURCES}
   list_lm_info.cxx
   list_lm_events.cxx
   list_lm_countrates.cxx
+  list_lm_gating_info.cxx
   )
 
 if (HAVE_ECAT)
