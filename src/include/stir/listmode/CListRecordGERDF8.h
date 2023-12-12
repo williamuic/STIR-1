@@ -1,7 +1,7 @@
 /*
     Copyright (C) 2003-2011 Hammersmith Imanet Ltd (CListRecordECAT.h)
     Copyright (C) 2013 University College London (major mods for GE Dimension data)
-    Copyright (C) 2023 University College London RDF8
+    Copyright (C) 2023 University College London (RDF8)
     This file is part of STIR.
 
     SPDX-License-Identifier: Apache-2.0
@@ -172,10 +172,11 @@ class CListGatingDataGERDF8
  public:
   inline bool is_gating_input() const
   { return (data.eventType == PHYS1_TRIG_EVT) || (data.eventType == PHYS2_TRIG_EVT); }
+  //! Returns 0 (PHYS1) or 1 or (PHYS2)
   inline unsigned int get_gating() const
-  { return data.eventType; }
+  { return data.eventType - PHYS1_TRIG_EVT; }
   inline Succeeded set_gating(unsigned int g) 
-  { data.eventType = g&7; return Succeeded::yes; }
+  { data.eventType = g + PHYS1_TRIG_EVT; return Succeeded::yes; }
       
 private:
   typedef union{
@@ -212,7 +213,7 @@ private:
   This class essentially just forwards the work to the "basic" classes.
 
 */
-class CListRecordGERDF8 : public CListRecord, public ListTime, public ListGatingInput,
+class CListRecordGERDF8 : public CListRecordWithGatingInput, public ListTime, public ListGatingInput,
     public  CListEventCylindricalScannerWithDiscreteDetectors
 {
   typedef CListEventDataGERDF8 DataType;
@@ -263,6 +264,7 @@ dynamic_cast<CListRecordGERDF8 const *>(&e2) != 0 &&
     { return time_data.get_time_in_millisecs(); }
   inline Succeeded set_time_in_millisecs(const unsigned long time_in_millisecs)
     { return time_data.set_time_in_millisecs(time_in_millisecs); }
+  //! Returns 0 (PHYS1-type trigger) or 1 or (PHYS2-type trigger)
   inline unsigned int get_gating() const
     { return gating_data.get_gating(); }
   inline Succeeded set_gating(unsigned int g) 
@@ -304,20 +306,8 @@ dynamic_cast<CListRecordGERDF8 const *>(&e2) != 0 &&
 
     if (do_byte_swap)
       {
-        ByteOrder::swap_order(this->raw[0]);
-      }
-    if (this->is_event() || this->is_time())
-      {
-//	std::cout << "This is an event \n" ;
-        assert(size >= 6);
-	
-        std::copy(data_ptr+6, data_ptr+6, reinterpret_cast<char *>(&this->raw[1]));
-//	std::cout << "after assert an event \n" ;
-      }
-    if (do_byte_swap)
-      {
 	error("don't know how to byteswap");
-        ByteOrder::swap_order(this->raw[1]);
+        ByteOrder::swap_order(this->raw[0]);
       }
 	  
 	  if (this->is_event())
