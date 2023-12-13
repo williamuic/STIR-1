@@ -39,6 +39,8 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #endif
 
+#include <fstream>
+
 namespace nmtools
 {
 namespace IO
@@ -52,6 +54,21 @@ namespace ge
 #else
     return path;
 #endif
+  }
+
+  template <class T> static void readField(std::ifstream& fin, T& f)
+    {
+      const std::size_t size = sizeof(T);
+      fin.read(reinterpret_cast<char *>(&f), size);
+    }
+
+
+  static std::string readString(std::ifstream& fin, unsigned size)
+  {
+    char buf[size+1];
+    fin.read(&buf[0], size);
+    buf[size] = '\0';
+    return std::string(buf);
   }
 
 bool RDF8Base::GetField(const std::string sid, boost::any &data) const
@@ -123,14 +140,7 @@ bool RDF8Base::GetField(const std::string sid, boost::any &data) const
   return true;
 }
 
-  static std::string readString(std::ifstream& fin, unsigned size)
-  {
-    char buf[size+1];
-    fin.read(&buf[0], size);
-    buf[size] = '\0';
-    return std::string(buf);
-  }
-    
+   
 bool CRDF8EXAM::Read(const path_t inFilePath)
 {
   std::ifstream fin;
@@ -792,6 +802,148 @@ std::ostream &operator<<(std::ostream &os, const CRDF8CONFIG &rdf)
 
   return os;
 }
+
+  bool CRDF8ACQPARAMS::Read(const path_t inFilePath)
+  {
+    std::ifstream fin;
+    if (!ReadOffsets(fin, inFilePath))
+      return false;
+    fin.seekg(_offsets.acqParamStructOffset);
+
+    // sharcRDFAcqLandmarkParams Subheader
+    readField(fin, acq_landmark_params._landmarkQualifier);
+    readField(fin, acq_landmark_params._patientEntry);
+    readField(fin, acq_landmark_params._patientPosition);
+    readField(fin, acq_landmark_params._absTableLongitude);
+    readField(fin, acq_landmark_params._gantryTilt);
+    readField(fin, acq_landmark_params._tableElevation);
+    readField(fin, acq_landmark_params._landmarkDateTime);
+    readField(fin, acq_landmark_params._spares);
+
+    // sharcRDFAcqScanParams Subheader
+    readField(fin, acq_scan_params._scanPerspective);
+    readField(fin, acq_scan_params._scanType);
+    readField(fin, acq_scan_params._scanMode);
+    readField(fin, acq_scan_params._eventSource);
+    acq_scan_params._eventSimulation = readString(fin, pad4(RDF_MAX_SYS_PATH_SIZE)); // Changed to padded in RDFv8
+    readField(fin, acq_scan_params._startCondition);
+    readField(fin, acq_scan_params._stopCondition);
+    readField(fin, acq_scan_params._stopCondData);
+    readField(fin, acq_scan_params._delayedEvents);
+    readField(fin, acq_scan_params._delayedSubtractBias);
+    readField(fin, acq_scan_params._thetaCompression);
+    readField(fin, acq_scan_params._gantryTilt);
+    readField(fin, acq_scan_params._collimation);
+    readField(fin, acq_scan_params._tableLocation);
+    readField(fin, acq_scan_params._acqDelay);
+    readField(fin, acq_scan_params._acqTime);
+    readField(fin, acq_scan_params._startAngle);
+    readField(fin, acq_scan_params._deltaAngle);
+    readField(fin, acq_scan_params._angleThickness);
+    readField(fin, acq_scan_params._startSlice);
+    readField(fin, acq_scan_params._deltaSlice);
+    readField(fin, acq_scan_params._slicesCompressed);
+    readField(fin, acq_scan_params._singleCollect);
+    readField(fin, acq_scan_params._deadtimeCollect);
+    readField(fin, acq_scan_params._TransPlusEmiss);
+    readField(fin, acq_scan_params._axialCompression);
+    readField(fin, acq_scan_params._startCondData);
+    readField(fin, acq_scan_params._ct_kv);
+    acq_scan_params._ct_contrast = readString(fin, 64);
+    acq_scan_params._frame_of_reference = readString(fin, 64);
+    readField(fin, acq_scan_params._axialAcceptance);
+    readField(fin, acq_scan_params._retroScan);
+    readField(fin, acq_scan_params._tofCompressionFactor); // New for RDFv8
+    readField(fin, acq_scan_params._extraRsForTFOV); // New for RDFv8
+    readField(fin, acq_scan_params._spares); // Changed to 1 in RDFv8
+
+    // sharcRDFEdcatParams Subheader
+    readField(fin, acq_edcat_params._posAxialAcceptanceAngle);
+    readField(fin, acq_edcat_params._negAxialAcceptanceAngle);
+    readField(fin, acq_edcat_params._posCoincidenceWindow);
+    readField(fin, acq_edcat_params._negCoincidenceWindow);
+    readField(fin, acq_edcat_params._delayWindowOffset);
+    readField(fin, acq_edcat_params._transAxialFOV);
+    readField(fin, acq_edcat_params._coinOutputMode);
+    readField(fin, acq_edcat_params._upper_energy_limit);
+    readField(fin, acq_edcat_params._lower_energy_limit);
+    readField(fin, acq_edcat_params._majorClockPeriodFEE);
+    readField(fin, acq_edcat_params._coincTimingPrecision);
+    readField(fin, acq_edcat_params._crystalsInTFOV);
+    readField(fin, acq_edcat_params._spares);
+
+    // sharcRDFAcqRxGatedParams Subheader
+    readField(fin, acq_rx_gated_params._binningMode);
+    readField(fin, acq_rx_gated_params._numberOfBins);
+    readField(fin, acq_rx_gated_params._binDurations);
+    readField(fin, acq_rx_gated_params._trigRejMethod);
+    readField(fin, acq_rx_gated_params._nTrigRejections);
+    readField(fin, acq_rx_gated_params._upperRejLimit);
+    readField(fin, acq_rx_gated_params._lowerRejLimit);
+    readField(fin, acq_rx_gated_params._physioGatingType);
+    readField(fin, acq_rx_gated_params._spares);
+
+    // sharcRDFAcqTransControl Subheader
+    readField(fin, trans_control._tsHolder1);
+    readField(fin, trans_control._tsHolder2);
+    readField(fin, trans_control._tsSpeed);
+    readField(fin, trans_control._tsLocation);
+    readField(fin, trans_control._teoMaskWidth);
+    readField(fin, trans_control._teoMaskScaleFactor); // Changed to float in RDFv8
+    readField(fin, trans_control._teoMaskRadialSum);
+    readField(fin, trans_control._spares);
+
+    // RDFImageNumbering Subheader
+    readField(fin, image_numbering_data._locationOfImageOne);
+    readField(fin, image_numbering_data._locationOfImageOneIndx);
+    readField(fin, image_numbering_data._prospectiveNumbOfImageSlices);
+    readField(fin, image_numbering_data._spares);
+
+    // Back end filters new in RDFv8
+    readField(fin, back_end_acq_filters._maxRingDiff);
+    readField(fin, back_end_acq_filters._maxCoincDiffLSBs);
+    readField(fin, back_end_acq_filters._transaxialFovInMM);
+    readField(fin, back_end_acq_filters._maxEnergyKeV);
+    readField(fin, back_end_acq_filters._minEnergyKeV);
+    readField(fin, back_end_acq_filters._spares);
+
+    //spares = fread(fid, 2,'uint32');
+
+    return fin.good();
+  }
+
+  bool CRDF8ACQSTATS::Read(const path_t inFilePath)
+  {
+    std::ifstream fin;
+    if (!ReadOffsets(fin, inFilePath))
+      return false;
+
+    //Go to block of header.
+    fin.seekg(_offsets.acqStatsStructOffset);
+    readField(fin, _terminationCondition);
+    readField(fin, _totalPrompts);
+    readField(fin, _totalDelays);
+    readField(fin, _acceptedTriggers);
+    readField(fin, _rejectedTriggers);
+    readField(fin, _scanStartTime);
+    readField(fin, _frameStartTime);
+    readField(fin, _frameDuration);
+    _frameID = readString(fin, IDB_LEN_ID);
+    readField(fin, _binNumber);
+    readField(fin, _accumBinDuration);
+    readField(fin, _totalPromptsMs);
+    readField(fin, _totalDelaysMs);
+    readField(fin, _sorterFilteredEvtsLS);
+    readField(fin, _sorterFilteredEvtsMS);
+    readField(fin, _badCoincStreamEvts);
+    readField(fin, _frameNumber);
+    readField(fin, _isRejectBin);
+    readField(fin, _frameStartCoincTStamp);
+    readField(fin, _readyToScanUTC);
+    readField(fin, _spares);
+
+    return fin.good();
+  };
 
   bool CRDF8SYSTEMGEO::Read(const path_t inFilePath)
   {

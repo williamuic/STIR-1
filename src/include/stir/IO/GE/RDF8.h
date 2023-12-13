@@ -41,6 +41,8 @@ namespace IO
 namespace ge
 {
   typedef float float32_t;
+  using std::uint32_t;
+  using std::int32_t;
 #ifdef HAVE_BOOST_FILESYSTEM
   typedef boost::filesystem::path path_t;
 #else
@@ -48,36 +50,36 @@ namespace ge
 #endif
 
 //Contents of rdfConstants.m from GETPETToolbox
-const int ACQ_MAX_BINS = 64;
-const int S_RDF_MAX_TEO_MASK_WIDTH = 283;
-const int SHARC_DOS_MAX_PATH_SIZE = 180;
-const int IDB_LEN_ID = 65;
-const int IDB_LEN_DATETIME_STR = 27;
-const int IDB_LEN_CAL_DESCRIPTION = 33;
-const int IDB_LEN_MANUFACTURER = 65;
-const int IDB_LEN_MODALITY = 5;
-const int IDB_LEN_OPERATOR = 5;
-const int IDB_LEN_PATIENT_HISTORY = 61;
-const int IDB_LEN_PATIENT_ID = 21;
-const int IDB_LEN_PATIENT_IDENTIFIER = 65;
-const int IDB_LEN_PATIENT_NAME = 65;
-const int IDB_LEN_RADIONUCLIDE = 7;
-const int IDB_LEN_REF_PHYSICIAN = 65;
-const int IDB_LEN_REQUISITION = 17;
-const int IDB_LEN_SCAN_DESCRIPTION = 65;
-const int IDB_LEN_SCANNER_DESC = 33;
-const int IDB_CNT_ID_INTS = 2;
-const int IDB_LEN_HOSPITAL_NAME = 33;
-const int IDB_LEN_EXAM_DESC = 65;
-const int IDB_LEN_DIAGNOSTICIAN = 33;
-const int IDB_LEN_LANDMARK_NAME = 65;
-const int IDB_LEN_LANDMARK_ABBREV = 3;
-const int IDB_LEN_TRACER_NAME = 41;
-const int IDB_LEN_BATCH_DESCRIPTION = 41;
-const int SYS_NUM_AXIAL_SLICES_MAX = 47;
-const int SYS_NUM_MAJOR_RINGS_MAX = 4;
-const int SYS_NUM_MINOR_RINGS_MAX = 24;
-const int SYS_CRYSTALS_PER_BLOCK_MAX = 54;
+constexpr int ACQ_MAX_BINS = 64;
+constexpr int S_RDF_MAX_TEO_MASK_WIDTH = 283;
+constexpr int SHARC_DOS_MAX_PATH_SIZE = 180;
+constexpr int IDB_LEN_ID = 65;
+constexpr int IDB_LEN_DATETIME_STR = 27;
+constexpr int IDB_LEN_CAL_DESCRIPTION = 33;
+constexpr int IDB_LEN_MANUFACTURER = 65;
+constexpr int IDB_LEN_MODALITY = 5;
+constexpr int IDB_LEN_OPERATOR = 5;
+constexpr int IDB_LEN_PATIENT_HISTORY = 61;
+constexpr int IDB_LEN_PATIENT_ID = 21;
+constexpr int IDB_LEN_PATIENT_IDENTIFIER = 65;
+constexpr int IDB_LEN_PATIENT_NAME = 65;
+constexpr int IDB_LEN_RADIONUCLIDE = 7;
+constexpr int IDB_LEN_REF_PHYSICIAN = 65;
+constexpr int IDB_LEN_REQUISITION = 17;
+constexpr int IDB_LEN_SCAN_DESCRIPTION = 65;
+constexpr int IDB_LEN_SCANNER_DESC = 33;
+constexpr int IDB_CNT_ID_INTS = 2;
+constexpr int IDB_LEN_HOSPITAL_NAME = 33;
+constexpr int IDB_LEN_EXAM_DESC = 65;
+constexpr int IDB_LEN_DIAGNOSTICIAN = 33;
+constexpr int IDB_LEN_LANDMARK_NAME = 65;
+constexpr int IDB_LEN_LANDMARK_ABBREV = 3;
+constexpr int IDB_LEN_TRACER_NAME = 41;
+constexpr int IDB_LEN_BATCH_DESCRIPTION = 41;
+constexpr int SYS_NUM_AXIAL_SLICES_MAX = 47;
+constexpr int SYS_NUM_MAJOR_RINGS_MAX = 4;
+constexpr int SYS_NUM_MINOR_RINGS_MAX = 24;
+constexpr int SYS_CRYSTALS_PER_BLOCK_MAX = 54;
 
 struct RDF8HDROFFSETS
 {
@@ -102,9 +104,14 @@ struct RDF8HDROFFSETS
 std::string getGEDate(std::string date);
 std::string getGETime(std::string time);
 
+ constexpr int pad4(const int i) { return i - 1 + 4 - (i - 1) % 4; }
+
 class RDF8Base
 {
  public:
+  static constexpr unsigned RDF_MAX_PATH_SIZE = 180;
+  static constexpr unsigned RDF_MAX_SYS_PATH_SIZE = 256;
+
   virtual bool Read(const path_t) = 0;
   virtual bool GetField(const std::string sid, boost::any &data) const;
   virtual bool SetField(const std::string, const boost::any data){return false;}; //TODO: Implement this
@@ -113,6 +120,7 @@ class RDF8Base
 protected: 
 
   RDF8HDROFFSETS _offsets;
+
   //! open file, perform checks and sets _offsets
   /*!
     param[out] fin stream-object, will be set to (binary) stream
@@ -188,7 +196,6 @@ public:
   const std::string getScannerDescription() const { return _scannerDesc; }
 
 protected:
-  int pad4(const int i) { return i - 1 + 4 - (i - 1) % 4; };
 
   bool CleanField(std::string &, const std::size_t, std::string);
 
@@ -250,14 +257,150 @@ protected:
   friend std::ostream &operator<<(std::ostream &os, const CRDF8EXAM &rdf);
 };
 
+ class CRDF8ACQPARAMS : public RDF8Base
+ {
+ public:
+
+    //! enum for encoding head/feet first in the RDF file
+    enum AcqPatientEntries
+    { ACQ_HEAD_FIRST=0, ACQ_FEET_FIRST=1};
+    //! enum for encoding patient orientation in the RDF file
+    enum AcqPatientPositions
+    { ACQ_SUPINE=0, ACQ_PRONE=1, ACQ_LEFT_DECUB=2, ACQ_RIGHT_DECUB=3};
+
+   bool Read(const path_t) override;
+
+   struct AcqLandmarkParams {
+     uint32_t _landmarkQualifier;
+     uint32_t _patientEntry;
+     uint32_t _patientPosition;
+     int32_t _absTableLongitude;
+     int32_t _gantryTilt;
+     int32_t _tableElevation;
+     uint32_t _landmarkDateTime;
+     uint32_t _spares;
+   };
+   AcqLandmarkParams acq_landmark_params;
+
+   struct AcqScanParams
+   {
+     uint32_t _scanPerspective;
+     uint32_t _scanType;
+     uint32_t _scanMode;
+     uint32_t _eventSource;
+     std::string _eventSimulation; // pad4(RDF_MAX_SYS_PATH_SIZE)); // Changed to padded in RDFv8
+     uint32_t _startCondition;
+     uint32_t _stopCondition;
+     uint32_t _stopCondData;
+     uint32_t _delayedEvents;
+     uint32_t _delayedSubtractBias;
+     uint32_t _thetaCompression;
+     float32_t _gantryTilt;
+     uint32_t _collimation;
+     float32_t _tableLocation;
+     uint32_t _acqDelay;
+     uint32_t _acqTime;
+     float32_t _startAngle;
+     float32_t _deltaAngle;
+     float32_t _angleThickness;
+     uint32_t _startSlice;
+     uint32_t _deltaSlice;
+     uint32_t _slicesCompressed;
+     uint32_t _singleCollect;
+     uint32_t _deadtimeCollect;
+     uint32_t _TransPlusEmiss;
+     uint32_t _axialCompression;
+     uint32_t _startCondData;
+     float32_t _ct_kv;
+     std::string _ct_contrast; // 64;
+     std::string _frame_of_reference; // 64
+     uint32_t _axialAcceptance;
+     uint32_t _retroScan;
+     uint32_t _tofCompressionFactor; // New for RDFv8
+     uint32_t _extraRsForTFOV; // New for RDFv8
+     uint32_t _spares; // Changed to 1 in RDFv8
+   };
+   AcqScanParams acq_scan_params;
+
+   struct EdcatParams
+   {
+     int32_t _posAxialAcceptanceAngle;
+     int32_t _negAxialAcceptanceAngle;
+     int32_t _posCoincidenceWindow;
+     int32_t _negCoincidenceWindow;
+     int32_t _delayWindowOffset;
+     int32_t _transAxialFOV;
+     int32_t _coinOutputMode;
+     uint32_t _upper_energy_limit;
+     uint32_t _lower_energy_limit;
+     uint32_t _majorClockPeriodFEE;
+     float32_t _coincTimingPrecision;
+     uint32_t _crystalsInTFOV;
+     uint32_t _spares[6];
+   };
+   EdcatParams acq_edcat_params;
+
+   struct AcqRxGatedParams
+   {
+     uint32_t _binningMode;
+     uint32_t _numberOfBins;
+     float32_t _binDurations[ACQ_MAX_BINS];
+     uint32_t _trigRejMethod;
+     uint32_t _nTrigRejections;
+     uint32_t _upperRejLimit;
+     uint32_t _lowerRejLimit;
+     uint32_t _physioGatingType;
+     uint32_t _spares[9];
+   };
+   AcqRxGatedParams acq_rx_gated_params;
+
+   struct AcqTransControl
+   {
+     uint32_t _tsHolder1;
+     uint32_t _tsHolder2;
+     uint32_t _tsSpeed;
+     uint32_t _tsLocation;
+     uint32_t _teoMaskWidth;
+     float32_t _teoMaskScaleFactor; // Changed to float in RDFv8
+     int16_t _teoMaskRadialSum[pad4(S_RDF_MAX_TEO_MASK_WIDTH)];
+     uint32_t _spares[10];
+   };
+   AcqTransControl trans_control;
+
+   struct ImageNumbering
+   {
+     float32_t _locationOfImageOne;
+     float32_t _locationOfImageOneIndx;
+     uint32_t _prospectiveNumbOfImageSlices;
+     uint32_t _spares;
+   };
+   ImageNumbering image_numbering_data;
+
+   struct BackEndFilters// new in RDFv8
+   {
+     uint32_t _maxRingDiff;
+     uint32_t _maxCoincDiffLSBs;
+     float32_t _transaxialFovInMM;
+     float32_t _maxEnergyKeV;
+     float32_t _minEnergyKeV;
+     uint32_t _spares[3];
+   };
+   BackEndFilters back_end_acq_filters;
+
+   // spares = fread(fid, 2,'uint32');
+ protected:
+  bool populateDictionary() override { /*TODO*/ return false;}
+ };
+
+
 class CRDF8ACQSTATS : public RDF8Base
 {
 public:
 
   bool Read(const path_t) override;
 
-protected:
-  std::uint32_t _termCondition;
+ public:
+  std::uint32_t _terminationCondition;
   std::uint32_t _totalPrompts;
   std::uint32_t _totalDelays;
   std::uint32_t _acceptedTriggers;
@@ -267,7 +410,7 @@ protected:
   std::uint32_t _frameDuration;
   std::string _frameID;
   std::uint32_t _binNumber;
-  std::unique_ptr<std::vector<std::uint32_t>> _accumBinDuration;
+  std::uint32_t _accumBinDuration[ACQ_MAX_BINS];
   std::uint32_t _totalPromptsMs;
   std::uint32_t _totalDelaysMs;
   std::uint32_t _sorterFilteredEvtsLS;
@@ -276,16 +419,17 @@ protected:
   std::uint32_t _frameNumber;
   std::uint32_t _isRejectBin;
   std::uint32_t _frameStartCoincTStamp;
-  std::uint32_t _readyToScanUTC;
-  std::uint32_t spares[5];  
+  std::uint32_t _readyToScanUTC; // New in RDFv8
+  std::uint32_t _spares[5]; // changed to 5 in RDF8
+
+ protected:
+  bool populateDictionary() override { /*TODO*/ return false;}
 };
 
 class CRDF8SYSTEMGEO : public RDF8Base {
  public:
   bool Read(const path_t) override;
 
-  static constexpr unsigned RDF_MAX_PATH_SIZE = 180;
-  static constexpr unsigned RDF_MAX_SYS_PATH_SIZE = 256;
   static constexpr unsigned RDF_NUM_MAJOR_RINGS_MAX = 6;
   static constexpr unsigned RDF_NUM_MINOR_RINGS_MAX = 60;
   static constexpr unsigned RDF_NUM_AXIAL_SLICES_MAX = (2*RDF_NUM_MINOR_RINGS_MAX)-1;
@@ -423,7 +567,7 @@ class CRDF8LIST : public RDF8Base {
   std::uint64_t _sizeOfList;
   double _listCompAlgCoefs[RDF_NUM_LIST_COMPRESS_ALG_COEFS]; // New to RDFv8
 
-  bool populateDictionary();
+  bool populateDictionary() override;
 };
 
 class RDF8Info {
