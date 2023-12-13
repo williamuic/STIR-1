@@ -86,7 +86,7 @@ std::time_t
 CListModeDataGERDF8::
 get_scan_start_time_in_secs_since_1970() const
 {
-  return std::time_t(-1); // TODO
+  return this->get_exam_info().start_time_in_secs_since_1970;
 }
 
 
@@ -94,7 +94,7 @@ shared_ptr <CListRecord>
 CListModeDataGERDF8::
 get_empty_record_sptr() const
 {
-  shared_ptr<CListRecord> sptr(new CListRecordT(this->proj_data_info_sptr));
+  shared_ptr<CListRecord> sptr(new CListRecordT(this->proj_data_info_sptr, this->first_time_stamp));
   return sptr;
 }
 
@@ -103,40 +103,77 @@ CListModeDataGERDF8::
 open_lm_file()
 {
   info(boost::format("CListModeDataGERDF8: opening file %1%") % listmode_filename);
-  nmtools::IO::ge::CRDF8LIST list_header;
-  if (!list_header.Read(listmode_filename))
+  {
+    nmtools::IO::ge::CRDF8LIST list_header;
+    if (!list_header.Read(listmode_filename))
+      {
+        error("Error reading listheader from '" + listmode_filename + "' as GE RDF8");
+      }
+    if (list_header.IsListCompressed())
+      {
+        error("'" + listmode_filename + "' is GE RDF8 list-file, but it is compressed. Cannot handle that.");
+      }
+    shared_ptr<std::istream> stream_ptr(new std::fstream(listmode_filename.c_str(), std::ios::in | std::ios::binary));
+    if (!(*stream_ptr))
+      {
+        return Succeeded::no;
+      }
+    const auto listStartOffset = list_header.GetListStartOffset();
+    stream_ptr->seekg(listStartOffset);
+    this->current_lm_data_ptr.reset(
+                                    new InputStreamWithRecords<CListRecordT, bool>(stream_ptr, 
+                                                                                   4, 16,
+                                                                                   ByteOrder::little_endian != ByteOrder::get_native_order()));
+    this->first_time_stamp = list_header.GetFirstTmAbsTimeStamp();
+    this->lm_duration_in_millisecs = list_header.GetListStartOffset() - this->first_time_stamp;
+  }
+
+  //void CListModeDataGERDF8::initialise_exam_info()
+  {
+    ExamInfo exam_info;
+    exam_info.imaging_modality = ImagingModality(ImagingModality::PT);
+    typedef nmtools::IO::ge::CRDF8ACQSTATS AcqStatsT;
+    typedef nmtools::IO::ge::CRDF8ACQPARAMS AcqParamsT;
+    AcqStatsT acq_stats_header;
+    acq_stats_header.Read(listmode_filename);
+    AcqParamsT acq_params_header;
+    acq_params_header.Read(listmode_filename);
     {
-      error("Error reading listheader from '" + listmode_filename + "' as GE RDF8");
+      PatientPosition::OrientationValue orientation;
+      PatientPosition::RotationValue rotation;
+      switch (acq_params_header.acq_landmark_params._patientEntry)
+        {
+        case AcqParamsT::AcqPatientEntries::ACQ_HEAD_FIRST: orientation = PatientPosition::OrientationValue::head_in; break;
+        case AcqParamsT::AcqPatientEntries::ACQ_FEET_FIRST: orientation = PatientPosition::OrientationValue::feet_in; break;
+        default: orientation = PatientPosition::OrientationValue::unknown_orientation;
+        }
+      switch (acq_params_header.acq_landmark_params._patientPosition)
+        {
+        case AcqParamsT::AcqPatientPositions::ACQ_SUPINE: rotation = PatientPosition::RotationValue::supine; break;
+        case AcqParamsT::AcqPatientPositions::ACQ_PRONE: rotation = PatientPosition::RotationValue::prone; break;
+        case AcqParamsT::AcqPatientPositions::ACQ_LEFT_DECUB: rotation = PatientPosition::RotationValue::left; break;
+        case AcqParamsT::AcqPatientPositions::ACQ_RIGHT_DECUB: rotation = PatientPosition::RotationValue::right; break;
+        default: rotation = PatientPosition::RotationValue::unknown_rotation; break;
+        }
+      exam_info.patient_position = PatientPosition(orientation, rotation);
     }
-  if (list_header.IsListCompressed())
-    {
-      error("'" + listmode_filename + "' is GE RDF8 list-file, but it is compressed. Cannot handle that.");
-    }
-  shared_ptr<std::istream> stream_ptr(new std::fstream(listmode_filename.c_str(), std::ios::in | std::ios::binary));
-  if (!(*stream_ptr))
-    {
-      return Succeeded::no;
-    }
-#if 0
-  scannerParams scannerParams;
-  off_t listStartOffset;
-  
-  if (GEgetListOffsetAndScannerParams( listmode_filename.c_str(),
-				       &listStartOffset,
-				       &scannerParams ) != SYS_OK )
-    { 
-      warning( "unable to get start of list file offset" );
-      return Succeeded::no; 
-    }
-  stream_ptr->seekg(listStartOffset);
-#else
-  const auto listStartOffset = list_header.GetListStartOffset();
-  stream_ptr->seekg(listStartOffset);
-#endif
-  current_lm_data_ptr.reset(
-                            new InputStreamWithRecords<CListRecordT, bool>(stream_ptr, 
-                                                                           4, 16,
-                                                                           ByteOrder::little_endian != ByteOrder::get_native_order()));
+
+    exam_info.set_high_energy_thres(static_cast<float>(acq_params_header.acq_edcat_params._upper_energy_limit));
+    exam_info.set_low_energy_thres(static_cast<float>(acq_params_header.acq_edcat_params._lower_energy_limit));
+
+    auto scanStartTime = double(acq_stats_header._scanStartTime);
+    exam_info.start_time_in_secs_since_1970=scanStartTime;
+
+    const double frame_start_time = acq_stats_header._frameStartTime - scanStartTime;
+    const double frameDuration = acq_stats_header._frameDuration/1000;
+
+    std::vector<std::pair<double, double> >tf{{frame_start_time,frame_start_time+frameDuration}};
+
+    TimeFrameDefinitions tm(tf);
+    exam_info.set_time_frame_definitions(tm);
+
+    this->set_exam_info(exam_info);
+  }
 
   return Succeeded::yes;
 }
@@ -173,5 +210,6 @@ set_get_position(const CListModeDataGERDF8::SavedPosition& pos)
   return
     current_lm_data_ptr->set_get_position(pos);
 }
+
 
 END_NAMESPACE_STIR

@@ -221,8 +221,9 @@ class CListRecordGERDF8 : public CListRecordWithGatingInput, public ListTime, pu
   typedef CListGatingDataGERDF8 GatingType;
 
  public:  
-  CListRecordGERDF8(const shared_ptr<const ProjDataInfo>& proj_data_info_sptr) :
-  CListEventCylindricalScannerWithDiscreteDetectors(proj_data_info_sptr)
+ CListRecordGERDF8(const shared_ptr<const ProjDataInfo>& proj_data_info_sptr, unsigned long first_time_stamp) :
+  CListEventCylindricalScannerWithDiscreteDetectors(proj_data_info_sptr),
+    first_time_stamp(first_time_stamp)
     {}
 
   bool is_time() const
@@ -261,7 +262,7 @@ dynamic_cast<CListRecordGERDF8 const *>(&e2) != 0 &&
 
   // time 
   inline unsigned long get_time_in_millisecs() const 
-    { return time_data.get_time_in_millisecs(); }
+    { return time_data.get_time_in_millisecs() - first_time_stamp; }
   inline Succeeded set_time_in_millisecs(const unsigned long time_in_millisecs)
     { return time_data.set_time_in_millisecs(time_in_millisecs); }
   //! Returns 0 (PHYS1-type trigger) or 1 or (PHYS2-type trigger)
@@ -333,6 +334,7 @@ private:
   BOOST_STATIC_ASSERT(sizeof(TimeType)==6); 
   BOOST_STATIC_ASSERT(sizeof(GatingType)==6); 
 
+  unsigned long first_time_stamp;
 };
 
 

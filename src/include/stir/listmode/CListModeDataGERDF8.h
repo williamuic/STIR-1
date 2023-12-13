@@ -69,8 +69,8 @@ private:
   typedef CListRecordGERDF8 CListRecordT;
   std::string listmode_filename;
   shared_ptr<InputStreamWithRecords<CListRecordT, bool> > current_lm_data_ptr;
-  float lm_start_time;
-  float lm_duration;
+  unsigned long first_time_stamp;
+  unsigned long lm_duration_in_millisecs;
   
   Succeeded open_lm_file(); 
 };
