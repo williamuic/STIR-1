@@ -41,7 +41,6 @@ set_defaults()
   this->prior_sptr.reset();
   // note: cannot use set_num_subsets(1) here, as other parameters (such as projectors) are not set-up yet.
   this->num_subsets = 1;
-  use_tof = false;
 }
 
 template <typename TargetT>
@@ -50,7 +49,6 @@ GeneralisedObjectiveFunction<TargetT>::
 initialise_keymap()
 {
   this->parser.add_parsing_key("prior type", &prior_sptr);
-  this->parser.add_key("Use TOF information", &use_tof);
 }
 
 template <typename TargetT>
@@ -81,11 +79,6 @@ set_up(shared_ptr<TargetT> const& target_data_ptr)
 	      this->num_subsets);
       return Succeeded::no;
     }
-
-  if (use_tof)
-  {
-      info("Time-Of-Flight reconstruction activated!");
-  }
 
   return Succeeded::yes;  
 }
@@ -149,6 +142,8 @@ compute_sub_gradient(TargetT& gradient,
 		     const TargetT &current_estimate, 
 		     const int subset_num)
 {
+  if (!this->already_set_up)
+    error("Need to call set_up() for objective function first");
   assert(gradient.get_index_range() == current_estimate.get_index_range());
 
   if (subset_num<0 || subset_num>=this->get_num_subsets())
@@ -184,14 +179,6 @@ get_num_subsets() const
 }
 
 template <typename TargetT>
-bool
-GeneralisedObjectiveFunction<TargetT>::
-get_tof_status() const
-{
-  return this->use_tof;
-}
-
-template <typename TargetT>
 double
 GeneralisedObjectiveFunction<TargetT>::
 compute_objective_function_without_penalty(const TargetT& current_estimate)
@@ -209,6 +196,8 @@ GeneralisedObjectiveFunction<TargetT>::
 compute_objective_function_without_penalty(const TargetT& current_estimate,
 					   const int subset_num)
 {
+  if (!this->already_set_up)
+    error("Need to call set_up() for objective function first");
   if (subset_num<0 || subset_num>=this->get_num_subsets())
     error("compute_objective_function_without_penalty subset_num out-of-range error");
 
@@ -246,6 +235,8 @@ add_multiplication_with_approximate_sub_Hessian_without_penalty(TargetT& output,
 								const TargetT& input,
 								const int subset_num) const
 {
+  if (!this->already_set_up)
+    error("Need to call set_up() for objective function first");
   if (subset_num<0 || subset_num>=this->get_num_subsets())
     error("add_multiplication_with_approximate_sub_Hessian_without_penalty subset_num out-of-range error");
 
@@ -274,6 +265,8 @@ add_multiplication_with_approximate_sub_Hessian(TargetT& output,
 						const TargetT& input,
 						const int subset_num) const
 {
+  if (!this->already_set_up)
+    error("Need to call set_up() for objective function first");
   if (this->add_multiplication_with_approximate_sub_Hessian_without_penalty(output, input, subset_num) ==
       Succeeded::no)
     return Succeeded::no;
@@ -421,6 +414,8 @@ accumulate_sub_Hessian_times_input_without_penalty(TargetT& output,
                                                    const TargetT& input,
                                                    const int subset_num) const
 {
+  if (!this->already_set_up)
+    error("Need to call set_up() for objective function first");
   if (subset_num<0 || subset_num>=this->get_num_subsets())
     error("accumulate_sub_Hessian_times_input_without_penalty subset_num out-of-range error");
 
@@ -471,12 +466,8 @@ std::string
 GeneralisedObjectiveFunction<TargetT>::
 get_objective_function_values_report(const TargetT& current_estimate)
 {
-#ifdef BOOST_NO_STRINGSTREAM
-  char str[10000];
-  ostrstream s(str, 10000);
-#else
   std::ostringstream s;
-#endif
+
   const double no_penalty = 
     this->compute_objective_function_without_penalty(current_estimate);
   const double penalty =
@@ -502,6 +493,12 @@ bool
 GeneralisedObjectiveFunction<TargetT>::
 subsets_are_approximately_balanced(std::string& warning_message) const
 {
+#if 0
+  // TODO cannot do this yet, as this function is called in
+  // `PoissonLogLikelihoodWithLinearModelForMean::compute_sensitivities` during set_up()
+  if (!this->already_set_up)
+    error("Need to call set_up() for objective function first");
+#endif
   return this->actual_subsets_are_approximately_balanced(warning_message);
 }
 

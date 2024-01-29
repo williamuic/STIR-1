@@ -58,4 +58,4 @@ endif()
 
 include(stir_lib_target)
 
-target_link_libraries(listmode_buildblock data_buildblock )
+target_link_libraries(listmode_buildblock PUBLIC data_buildblock )

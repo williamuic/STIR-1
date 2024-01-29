@@ -84,7 +84,6 @@ FRAME_BASED_DT_CORR:
 #include <iostream>
 #include <vector>
 
-#ifndef STIR_NO_NAMESPACES
 using std::string;
 using std::fstream;
 using std::ifstream;
@@ -99,7 +98,6 @@ using std::min;
 using std::max;
 using std::vector;
 using std::pair;
-#endif
 
 START_NAMESPACE_STIR
 
@@ -636,15 +634,15 @@ process_data()
     Scanner const * const scanner_ptr = 
       template_proj_data_info_ptr->get_scanner_ptr();
 
-    if (*scanner_ptr != *lm_data_ptr->get_scanner_ptr())
+    if (*scanner_ptr != lm_data_ptr->get_scanner())
       {
         error("LmToProjData:\nScanner from list mode data (%s) is different from\n"
                 "scanner from template projdata (%s).\n"
                 "Full definition of scanner from list mode data:\n%s\n"
                 "Full definition of scanner from template:\n%s\n",
-                lm_data_ptr->get_scanner_ptr()->get_name().c_str(),
+                lm_data_ptr->get_scanner().get_name().c_str(),
                 scanner_ptr->get_name().c_str(),
-                lm_data_ptr->get_scanner_ptr()->parameter_info().c_str(),
+                lm_data_ptr->get_scanner().parameter_info().c_str(),
                 scanner_ptr->parameter_info().c_str());
       }
 

@@ -1,7 +1,7 @@
 /*
     Copyright (C) 2000 PARAPET partners
     Copyright (C) 2000-2011, Hammersmith Imanet Ltd
-    Copyright (C) 2014, 2016-2022 University College London
+    Copyright (C) 2014, 2016-2023 University College London
     This file is part of STIR.
 
     SPDX-License-Identifier: Apache-2.0 AND License-ref-PARAPET-license
@@ -70,12 +70,10 @@
 #include "stir/info.h"
 #include <boost/format.hpp>
 
-#ifndef STIR_NO_NAMESPACES
 using std::vector;
 using std::pair;
 using std::ends;
 using std::max;
-#endif
 
 
 START_NAMESPACE_STIR
@@ -391,6 +389,7 @@ int
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_num_subsets(const int new_num_subsets)
 {
+  this->already_set_up = this->already_set_up && (this->num_subsets == new_num_subsets);
   this->num_subsets = std::max(new_num_subsets,1);
   return this->num_subsets;
 
@@ -401,6 +400,7 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_proj_data_sptr(const shared_ptr<ProjData>& arg)
 {
+  this->already_set_up = false;
   this->proj_data_sptr = arg;
 }
 
@@ -409,6 +409,7 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_max_segment_num_to_process(const int arg)
 {
+  this->already_set_up = this->already_set_up && (this->max_segment_num_to_process == arg);
   this->max_segment_num_to_process = arg;
 }
 
@@ -417,6 +418,7 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_max_timing_pos_num_to_process(const int arg)
 {
+  this->already_set_up = this->already_set_up && (this->max_timing_pos_num_to_process == arg);
   this->max_timing_pos_num_to_process = arg;
 }
 
@@ -425,6 +427,7 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_zero_seg0_end_planes(const bool arg)
 {
+  this->already_set_up = this->already_set_up && (this->zero_seg0_end_planes == arg);
   this->zero_seg0_end_planes = arg;
 }
 
@@ -433,7 +436,8 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_additive_proj_data_sptr(const shared_ptr<ExamData> &arg)
 {
-    this->additive_proj_data_sptr = dynamic_pointer_cast<ProjData>(arg);
+  this->already_set_up = false;
+  this->additive_proj_data_sptr = dynamic_pointer_cast<ProjData>(arg);
 }
 
 template<typename TargetT>
@@ -441,6 +445,7 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_projector_pair_sptr(const shared_ptr<ProjectorByBinPair>& arg) 
 {
+  this->already_set_up = false;
   this->projector_pair_ptr = arg;
 }
 
@@ -449,6 +454,7 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_frame_num(const int arg)
 {
+  this->already_set_up = this->already_set_up && (this->frame_num == arg);
   this->frame_num = arg;
 }
 
@@ -457,6 +463,7 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_frame_definitions(const TimeFrameDefinitions& arg)
 {
+  this->already_set_up = this->already_set_up && (this->frame_defs == arg);
   this->frame_defs = arg;
 }
 
@@ -465,6 +472,7 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_normalisation_sptr(const shared_ptr<BinNormalisation>& arg)
 {
+  this->already_set_up = false;
   this->normalisation_sptr = arg;
 }
 
@@ -473,7 +481,8 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_input_data(const shared_ptr<ExamData> & arg)
 {
-    this->proj_data_sptr = dynamic_pointer_cast<ProjData>(arg);
+  this->already_set_up = false;
+  this->proj_data_sptr = dynamic_pointer_cast<ProjData>(arg);
 }
 
 template<typename TargetT>
@@ -551,12 +560,48 @@ sensitivity_uses_same_projector() const
   set_up()
 ***************************************************************/
 template<typename TargetT>
+void
+PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
+ensure_norm_is_set_up(bool for_original_data) const
+{
+
+  for_original_data = for_original_data || this->sensitivity_uses_same_projector();
+  if (for_original_data)
+    {
+      if (!this->norm_already_setup || !this->latest_setup_norm_was_with_orig_data)
+        {
+          if (this->normalisation_sptr->set_up(proj_data_sptr->get_exam_info_sptr(), this->proj_data_sptr->get_proj_data_info_sptr()) == Succeeded::no)
+            error("Set_up of norm with original data failed.");
+        }
+    }
+  else
+    {
+      if (!this->norm_already_setup || this->latest_setup_norm_was_with_orig_data)
+        {
+          if (this->normalisation_sptr->set_up(proj_data_sptr->get_exam_info_sptr(), this->sens_proj_data_info_sptr) == Succeeded::no)
+            error("Set_up of norm with non-TOF data failed.\n"
+                  "If your norm is TOF, set \"use time-of-flight sensitivities\" to true.");
+        }
+    }
+  this->norm_already_setup = true;
+  this->latest_setup_norm_was_with_orig_data = for_original_data;
+}
+
+template<typename TargetT>
+void
+PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
+ensure_norm_is_set_up_for_sensitivity() const
+{
+  this->ensure_norm_is_set_up(false);
+}
+
+template<typename TargetT>
 Succeeded 
 PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
 set_up_before_sensitivity(shared_ptr<const TargetT > const& target_sptr)
 {
   if (is_null_ptr(this->proj_data_sptr))
-	error("you need to set the input data before calling set_up");
+    error("you need to set the input data before calling set_up");
 
   if (this->max_segment_num_to_process==-1)
     this->max_segment_num_to_process =
@@ -565,12 +610,12 @@ set_up_before_sensitivity(shared_ptr<const TargetT > const& target_sptr)
   if (this->max_segment_num_to_process > this->proj_data_sptr->get_max_segment_num()) 
     { 
       error("max_segment_num_to_process (%d) is too large",
-              this->max_segment_num_to_process); 
+            this->max_segment_num_to_process); 
       return Succeeded::no;
     }
 
-    this->max_timing_pos_num_to_process =
-      this->proj_data_sptr->get_max_tof_pos_num();
+  this->max_timing_pos_num_to_process =
+    this->proj_data_sptr->get_max_tof_pos_num();
 
   shared_ptr<ProjDataInfo> proj_data_info_sptr(this->proj_data_sptr->get_proj_data_info_sptr()->clone());
 
@@ -602,13 +647,15 @@ set_up_before_sensitivity(shared_ptr<const TargetT > const& target_sptr)
 			      this->projector_pair_ptr->get_back_projector_sptr()->get_symmetries_used()->clone());
 
   if (is_null_ptr(this->normalisation_sptr))
-  {
-    error("Invalid normalisation object");
-    return Succeeded::no;
-  }
+    {
+      error("Invalid normalisation object");
+      return Succeeded::no;
+    }
 
   // we postpone calling setup_distributable_computation until we know which projectors we will use
   this->distributable_computation_already_setup = false;
+  // similar for norm
+  this->norm_already_setup = false;
 
   if (this->get_recompute_sensitivity())
     {
@@ -616,13 +663,13 @@ set_up_before_sensitivity(shared_ptr<const TargetT > const& target_sptr)
         {
           this->sens_backprojector_sptr = projector_pair_ptr->get_back_projector_sptr();
           this->sens_symmetries_sptr = this->symmetries_sptr;
-          if (this->normalisation_sptr->set_up(proj_data_sptr->get_exam_info_sptr(), proj_data_info_sptr) == Succeeded::no)
-            return Succeeded::no;
+          this->sens_proj_data_info_sptr = proj_data_info_sptr;
         }
       else
         {
           // sets non-tof backprojector for sensitivity calculation (clone of the back_projector + set projdatainfo to non-tof)
           auto pdi_non_tof_sptr = proj_data_info_sptr->create_non_tof_clone();
+          this->sens_proj_data_info_sptr = pdi_non_tof_sptr;
           this->sens_backprojector_sptr.reset(projector_pair_ptr->get_back_projector_sptr()->clone());
           if (auto sens_bp_pm_sptr = std::dynamic_pointer_cast<BackProjectorByBinUsingProjMatrixByBin>(this->sens_backprojector_sptr))
             {
@@ -633,8 +680,6 @@ set_up_before_sensitivity(shared_ptr<const TargetT > const& target_sptr)
             }
           this->sens_backprojector_sptr->set_up(pdi_non_tof_sptr, target_sptr);
           this->sens_symmetries_sptr.reset(this->sens_backprojector_sptr->get_symmetries_used()->clone());
-          if (this->normalisation_sptr->set_up(proj_data_sptr->get_exam_info_sptr(), pdi_non_tof_sptr) == Succeeded::no)
-            return Succeeded::no;
         }
     }
 
@@ -683,7 +728,8 @@ actual_compute_subset_gradient_without_penalty(TargetT& gradient,
     }
   if (!this->distributable_computation_already_setup)
     error("PoissonLogLikelihoodWithLinearModelForMeanAndProjData internal error: setup_distributable_computation not called (gradient calculation)");
-
+  if (add_sensitivity)
+    this->ensure_norm_is_set_up();
   distributable_compute_gradient(this->projector_pair_ptr->get_forward_projector_sptr(), 
                                  this->projector_pair_ptr->get_back_projector_sptr(), 
                                  this->symmetries_sptr,
@@ -725,6 +771,8 @@ actual_compute_objective_function_without_penalty(const TargetT& current_estimat
     }
   if (!this->distributable_computation_already_setup)
     error("PoissonLogLikelihoodWithLinearModelForMeanAndProjData internal error: setup_distributable_computation not called (function calculation)");
+  this->ensure_norm_is_set_up();
+
   double accum=0.;  
   
   distributable_accumulate_loglikelihood(this->projector_pair_ptr->get_forward_projector_sptr(), 
@@ -800,14 +848,9 @@ add_subset_sensitivity(TargetT& sensitivity, const int subset_num) const
   const int min_segment_num = -this->max_segment_num_to_process;
   const int max_segment_num = this->max_segment_num_to_process;
 
-#if 1
      shared_ptr<TargetT> sensitivity_this_subset_sptr(sensitivity.clone());
-     shared_ptr<ProjData> sens_proj_data_sptr;
      // have to create a ProjData object filled with 1 here because otherwise zero_seg0_endplanes will not be effective
-     if (!this->sensitivity_uses_same_projector())
-         sens_proj_data_sptr.reset(new ProjDataInMemory(this->proj_data_sptr->get_exam_info_sptr(), this->proj_data_sptr->get_proj_data_info_sptr()->create_non_tof_clone()));
-     else
-        sens_proj_data_sptr.reset(new ProjDataInMemory(this->proj_data_sptr->get_exam_info_sptr(), this->proj_data_sptr->get_proj_data_info_sptr()));
+     auto sens_proj_data_sptr = std::make_shared<ProjDataInMemory>(this->proj_data_sptr->get_exam_info_sptr(), this->sens_proj_data_info_sptr);
      sens_proj_data_sptr->fill(1.0F);
 
      if (this->sensitivity_uses_same_projector() && (!this->distributable_computation_already_setup || !this->latest_setup_distributable_computation_was_with_orig_projectors))
@@ -836,9 +879,10 @@ add_subset_sensitivity(TargetT& sensitivity, const int subset_num) const
          this->distributable_computation_already_setup = true;
          this->latest_setup_distributable_computation_was_with_orig_projectors = false;
        }
-
      if (!this->distributable_computation_already_setup)
        error("PoissonLogLikelihoodWithLinearModelForMeanAndProjData internal error: setup_distributable_computation not called (sensitivity calculation)");
+
+     this->ensure_norm_is_set_up_for_sensitivity();
 
      distributable_sensitivity_computation(this->projector_pair_ptr->get_forward_projector_sptr(), 
                                  this->sens_backprojector_sptr,
@@ -863,65 +907,7 @@ add_subset_sensitivity(TargetT& sensitivity, const int subset_num) const
   std::transform(sensitivity.begin_all(), sensitivity.end_all(), 
                  sensitivity_this_subset_sptr->begin_all(), sensitivity.begin_all(), 
 		 std::plus<typename TargetT::full_value_type>());
-#else
-
-  // warning: has to be same as subset scheme used as in distributable_computation
-  for (int segment_num = min_segment_num; segment_num <= max_segment_num; ++segment_num)
-  {
-        //CPUTimer timer;
-        //timer.start();
-        
-    for (int view = this->proj_data_sptr->get_min_view_num() + subset_num; 
-        view <= this->proj_data_sptr->get_max_view_num(); 
-        view += this->num_subsets)
-    {
-      const ViewSegmentNumbers view_segment_num(view, segment_num);
-        
-      if (!symmetries_sptr->is_basic(view_segment_num))
-        continue;
-      this->add_view_seg_to_sensitivity(sensitivity, view_segment_num);
-    }
-      //    cerr<<timer.value()<<endl;
-  }
-#endif
 }
-
-#if 0
-template<typename TargetT>
-void
-PoissonLogLikelihoodWithLinearModelForMeanAndProjData<TargetT>::
-add_view_seg_to_sensitivity(TargetT& sensitivity, const ViewSegmentNumbers& view_seg_nums) const
-{
-	int min_timing_pos_num = use_tofsens ? -this->max_timing_pos_num_to_process : 0;
-	int max_timing_pos_num = use_tofsens ? this->max_timing_pos_num_to_process : 0;
-	for (int timing_pos_num = min_timing_pos_num; timing_pos_num <= max_timing_pos_num; ++timing_pos_num)
-	{
-		RelatedViewgrams<float> viewgrams =
-			this->proj_data_sptr->get_empty_related_viewgrams(view_seg_nums,
-				this->symmetries_sptr, false, timing_pos_num);
-		viewgrams.fill(1.F);
-		// find efficiencies
-		{
-			const double start_frame = this->frame_defs.get_start_time(this->frame_num);
-			const double end_frame = this->frame_defs.get_end_time(this->frame_num);
-			this->normalisation_sptr->undo(viewgrams, start_frame, end_frame);
-		}
-		// backproject
-		{
-			const int range_to_zero =
-				view_seg_nums.segment_num() == 0 && this->zero_seg0_end_planes
-				? 1 : 0;
-			const int min_ax_pos_num =
-				viewgrams.get_min_axial_pos_num() + range_to_zero;
-			const int max_ax_pos_num =
-				viewgrams.get_max_axial_pos_num() - range_to_zero;
-
-			this->sens_backprojector_sptr->back_project(sensitivity, viewgrams, min_ax_pos_num, max_ax_pos_num);
-		}
-	}
-  
-}
-#endif
 
 template<typename TargetT>
  std::unique_ptr<ExamInfo>
@@ -962,13 +948,10 @@ actual_add_multiplication_with_approximate_sub_Hessian_without_penalty(TargetT& 
       }
   }     
 
+  this->ensure_norm_is_set_up();
+
   shared_ptr<DataSymmetriesForViewSegmentNumbers> symmetries_sptr(
     this->get_projector_pair().get_symmetries_used()->clone());
-
-  const double start_time =
-    this->get_time_frame_definitions().get_start_time(this->get_time_frame_num());
-  const double end_time =
-    this->get_time_frame_definitions().get_end_time(this->get_time_frame_num());
 
   this->get_projector_pair().get_forward_projector_sptr()->set_input(input);
   this->get_projector_pair().get_back_projector_sptr()->start_accumulating_in_new_target();

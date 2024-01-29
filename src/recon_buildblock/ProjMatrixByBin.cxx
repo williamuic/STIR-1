@@ -27,13 +27,7 @@
 
 #include "stir/recon_buildblock/ProjMatrixByBin.h"
 #include "stir/recon_buildblock/ProjMatrixElemsForOneBin.h"
-
-// define a local preprocessor symbol to keep code relatively clean
-#ifdef STIR_NO_MUTABLE
-#define STIR_MUTABLE_CONST
-#else
-#define STIR_MUTABLE_CONST const
-#endif
+#include "stir/TOF_conversions.h"
 
 START_NAMESPACE_STIR
 
@@ -75,8 +69,7 @@ enable_tof(const shared_ptr<const ProjDataInfo>& _proj_data_info_sptr, const boo
     if (v)
     {
         tof_enabled = true;
-        proj_data_info_sptr = _proj_data_info_sptr;
-        gauss_sigma_in_mm = ProjDataInfo::tof_delta_time_to_mm(proj_data_info_sptr->get_scanner_ptr()->get_timing_resolution()) / 2.355f;
+        gauss_sigma_in_mm = tof_delta_time_to_mm(proj_data_info_sptr->get_scanner_ptr()->get_timing_resolution()) / 2.355f;
         r_sqrt2_gauss_sigma = 1.0f/ (gauss_sigma_in_mm * static_cast<float>(sqrt(2.0)));
     }
 }
@@ -98,7 +91,7 @@ does_cache_store_only_basic_bins() const
 
 void 
 ProjMatrixByBin::
-clear_cache() STIR_MUTABLE_CONST
+clear_cache() const
 {
 #ifdef STIR_OPENMP
 #pragma omp critical(PROJMATRIXBYBINCLEARCACHE)
@@ -130,10 +123,13 @@ reserve_num_elements_in_cache(const std::size_t num_elems)
 void
 ProjMatrixByBin::
 set_up(   
-    const shared_ptr<const ProjDataInfo>& proj_data_info_sptr,
-    const shared_ptr<const DiscretisedDensity<3,float> >& /*density_info_ptr*/ // TODO should be Info only
+    const shared_ptr<const ProjDataInfo>& proj_data_info_sptr_v,
+    const shared_ptr<const DiscretisedDensity<3,float> >& density_info_sptr_v // TODO should be Info only
     )
 {
+  this->proj_data_info_sptr = proj_data_info_sptr_v;
+  this->image_info_sptr.reset(
+                              dynamic_cast<const VoxelsOnCartesianGrid<float>* > (density_info_sptr_v->clone() ));
   if (is_cache_enabled())
     {
       const int max_abs_tangential_pos_num =
@@ -159,7 +155,6 @@ set_up(
   else
   {
 	  tof_enabled = false;
-	  this->proj_data_info_sptr = proj_data_info_sptr;
   }
 
   this->cache_collection.recycle();
@@ -211,7 +206,7 @@ ProjMatrixByBin::cache_key(const Bin& bin) const
 void  
 ProjMatrixByBin::
 cache_proj_matrix_elems_for_one_bin(
-                                    const ProjMatrixElemsForOneBin& probabilities) STIR_MUTABLE_CONST
+                                    const ProjMatrixElemsForOneBin& probabilities) const
 { 
   if ( cache_disabled ) return;
   

@@ -186,10 +186,7 @@ actual_back_project(DiscretisedDensity<3,float>& image,
 						    min_tangential_pos_num, max_tangential_pos_num);
     
 	    for (
-#ifndef STIR_NO_NAMESPACES
-		 std::
-#endif
-		   vector<AxTangPosNumbers>::const_iterator r_ax_tang_poss_iter = related_ax_tang_poss.begin();
+                 auto r_ax_tang_poss_iter = related_ax_tang_poss.begin();
 		 r_ax_tang_poss_iter != related_ax_tang_poss.end();
 		 ++r_ax_tang_poss_iter)
 	      {
@@ -246,27 +243,9 @@ BackProjectorByBinUsingProjMatrixByBin::
 actual_back_project(DiscretisedDensity<3,float>& image,
                     const Bin& bin)
 {
-    if (proj_matrix_ptr->is_cache_enabled() /*&& !tof_enabled*/)
-    {
-        ProjMatrixElemsForOneBin proj_matrix_row;
-        proj_matrix_ptr->get_proj_matrix_elems_for_one_bin(proj_matrix_row, bin);
-        proj_matrix_row.back_project(image, bin);
-    }
-    else if (proj_matrix_ptr->is_cache_enabled()/* && tof_enabled*/)
-    {
-        tof_row->back_project(image, bin);
-    }
-    else
-        error("BackProjectorByBinUsingProjMatrixByBin: Symmetries should be handled by ProjMatrix. Abort. ");
-
-}
-
-void
-BackProjectorByBinUsingProjMatrixByBin::
-enable_tof(ProjMatrixElemsForOneBin * for_row)
-{
-    tof_row = for_row;
-//    tof_enabled = true;
+  ProjMatrixElemsForOneBin proj_matrix_row;
+  proj_matrix_ptr->get_proj_matrix_elems_for_one_bin(proj_matrix_row, bin);
+  proj_matrix_row.back_project(image, bin);
 }
 
 BackProjectorByBinUsingProjMatrixByBin*

@@ -86,12 +86,19 @@ class GeneralisedObjectiveFunction:
 {
 public:
   
-  //GeneralisedObjectiveFunction(); 
+  GeneralisedObjectiveFunction()
+    : already_set_up(false)
+  {}
+
 
   virtual ~GeneralisedObjectiveFunction(); 
 
 
   //! Creates a suitable target as determined by the parameters
+  /*!
+    \warning This should <b>not</b> check \c already_set_up (unfortunately),
+    as it is currently called in Reconstruction::reconstruct() before calling set_up().
+  */
   virtual TargetT *
     construct_target_ptr() const = 0; 
 
@@ -265,9 +272,6 @@ public:
       return exam_info_uptr;
   }
 
-  //! Return the status of TOF
-  bool get_tof_status() const;
-
   //! Attempts to change the number of subsets. 
   /*! \return The number of subsets that will be used later, which is not
       guaranteed to be what you asked for. */
@@ -334,9 +338,7 @@ public:
 
 protected:
   int num_subsets;
-
-  //! If set TOF information will be taken into account.
-  bool use_tof;
+  bool already_set_up;
 
   shared_ptr<GeneralisedPrior<TargetT> > prior_sptr;
 

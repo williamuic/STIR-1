@@ -116,6 +116,7 @@ int
 PoissonLogLikelihoodWithLinearModelForMeanAndListModeDataWithProjMatrixByBin<TargetT>::
 set_num_subsets(const int new_num_subsets)
 {
+  this->already_set_up = this->already_set_up && (this->num_subsets == new_num_subsets);
   this->num_subsets = new_num_subsets;
   return this->num_subsets;
 }
@@ -125,7 +126,8 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndListModeDataWithProjMatrixByBin<TargetT>::
 set_proj_matrix(const shared_ptr<ProjMatrixByBin>& arg)
 {
-    this->PM_sptr = arg;
+  this->already_set_up = false;
+  this->PM_sptr = arg;
 }
 
 #if 0
@@ -134,6 +136,7 @@ void
 PoissonLogLikelihoodWithLinearModelForMeanAndListModeDataWithProjMatrixByBin<TargetT>::
 set_proj_data_info(const ProjData& arg)
 {
+  this->already_set_up = false;
   // this will be broken now. Why did we need this?
     this->proj_data_info_sptr = arg.get_proj_data_info_sptr()->create_shared_clone();
     if(this->skip_lm_input_file)
@@ -349,9 +352,9 @@ PoissonLogLikelihoodWithLinearModelForMeanAndListModeDataWithProjMatrixByBin<Tar
   if (base_type::post_processing() == true)
     return true;
  
-#if STIR_VERSION < 060000
    this->proj_data_info_sptr = this->list_mode_data_sptr->get_proj_data_info_sptr()->create_shared_clone();
 
+#if STIR_VERSION < 060000
    if (this->get_max_segment_num_to_process() < 0)
      this->set_max_ring_difference(this->max_ring_difference_num_to_process);
    else
@@ -472,6 +475,7 @@ PoissonLogLikelihoodWithLinearModelForMeanAndListModeDataWithProjMatrixByBin<Tar
         return Succeeded::yes; // Stop here!!!
     }
 
+    this->num_cache_files = 0;
     if(this->cache_lm_file)
       {
         info("Listmode reconstruction: Creating cache...", 2);
@@ -723,8 +727,7 @@ TargetT *
 PoissonLogLikelihoodWithLinearModelForMeanAndListModeDataWithProjMatrixByBin<TargetT>:: 
 construct_target_ptr() const 
 { 
-
- return 
+  return 
    this->target_parameter_parser.create(this->get_input_data());
 } 
  

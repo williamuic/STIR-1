@@ -7,15 +7,13 @@
 
   Dead-time is not taken into account.
 
-  \todo We currently assume F-18 for decay.
-
   \author Palak Wadhwa
   \author Kris Thielemans
 
 */
 /*
   Copyright (C) 2017- 2019, University of Leeds
-  Copyright (C) 2020, 2021, University College London
+  Copyright (C) 2020, 2021, 2024 University College London
   This file is part of STIR.
 
   SPDX-License-Identifier: Apache-2.0
@@ -35,11 +33,9 @@
 #include "stir/data/randoms_from_singles.h"
 #include <boost/format.hpp>
 
-#ifndef STIR_NO_NAMESPACES
 using std::cerr;
 using std::endl;
 using std::string;
-#endif
 
 USING_NAMESPACE_STIR
 
@@ -86,10 +82,7 @@ int main(int argc, char **argv)
               output_file_name);
 
   GE::RDF_HDF5::SinglesRatesFromGEHDF5  singles(input_filename);
-  const float coincidence_time_window = input_file.get_coincidence_time_window();
 
-  const float isotope_halflife = input_file.get_halflife();
-
-  randoms_from_singles(proj_data, singles, coincidence_time_window, isotope_halflife);
+  randoms_from_singles(proj_data, singles);
   return EXIT_SUCCESS;
 }

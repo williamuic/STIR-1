@@ -17,7 +17,8 @@
  \author Alexey Zverovich
  \author PARAPET project
 
-
+*/
+/*
  Modification history:
 
   <TT>
@@ -44,18 +45,6 @@
 #endif
 
 #include <assert.h>
-
-#if defined(_MSC_VER) && (_MSC_VER < 1100) && !defined(bool)
-
-enum bool
-{
-    false = 0,
-    true  = (!false)
-};
-
-#define bool bool
-
-#endif
 
 namespace stir {
 

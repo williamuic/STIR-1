@@ -39,11 +39,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifndef STIR_NO_NAMESPACE
 using std::generate;
 using std::string;
 using std::cerr;
-#endif
 
 START_NAMESPACE_STIR
 
@@ -194,18 +192,21 @@ stir_mathTests::run_tests()
       check_if_equal( calc_data, *out_data_ptr,"test with power and scalar multiplication with --including-first and --accumulate");    
     }  
 
-    remove("STIRtmp1.ahv");
-    remove("STIRtmp1.hv");
-    remove("STIRtmp1.v");
-    remove("STIRtmp2.ahv");
-    remove("STIRtmp2.hv");
-    remove("STIRtmp2.v");
-    remove("STIRtmp3.ahv");
-    remove("STIRtmp3.hv");
-    remove("STIRtmp3.v");
-    remove("STIRtmpout.ahv");
-    remove("STIRtmpout.hv");
-    remove("STIRtmpout.v");
+    if (this->is_everything_ok())
+      {
+        remove("STIRtmp1.ahv");
+        remove("STIRtmp1.hv");
+        remove("STIRtmp1.v");
+        remove("STIRtmp2.ahv");
+        remove("STIRtmp2.hv");
+        remove("STIRtmp2.v");
+        remove("STIRtmp3.ahv");
+        remove("STIRtmp3.hv");
+        remove("STIRtmp3.v");
+        remove("STIRtmpout.ahv");
+        remove("STIRtmpout.hv");
+        remove("STIRtmpout.v");
+      }
   }
 
   // projdata
@@ -325,14 +326,17 @@ stir_mathTests::run_tests()
 		      "test with power and scalar multiplication with --including-first and --accumulate");    
     }
 
-    remove("STIRtmp1.hs");
-    remove("STIRtmp1.s");
-    remove("STIRtmp2.hs");
-    remove("STIRtmp2.s");
-    remove("STIRtmp3.hs");
-    remove("STIRtmp3.s");
-    remove("STIRtmpout.hs");
-    remove("STIRtmpout.s");
+    if (this->is_everything_ok())
+      {
+        remove("STIRtmp1.hs");
+        remove("STIRtmp1.s");
+        remove("STIRtmp2.hs");
+        remove("STIRtmp2.s");
+        remove("STIRtmp3.hs");
+        remove("STIRtmp3.s");
+        remove("STIRtmpout.hs");
+        remove("STIRtmpout.s");
+      }
   }
 
 }
