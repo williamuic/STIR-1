@@ -125,7 +125,7 @@ virtual void set_up(
     void forward_project(Bin&,
                          const DiscretisedDensity<3,float>&);
 #endif
-    virtual ~ForwardProjectorByBin();
+    ~ForwardProjectorByBin() override;
 
     /// Set input
     virtual void set_input(const DiscretisedDensity<3,float>&);
@@ -155,15 +155,25 @@ protected:
 
       If overriding this function in a derived class, you need to call this one.
    */
+  virtual void check(const ProjDataInfo& proj_data_info) const;
+
+  //! check if the arguments are the same as what was used for set_up()
+  /*! calls error() if anything is wrong.
+
+      If overriding this function in a derived class, you need to call this one.
+
+      Calls check(const ProjDataInfo&)
+   */
   virtual void check(const ProjDataInfo& proj_data_info, const DiscretisedDensity<3,float>& density_info) const;
+
   bool _already_set_up;
 
   //! The density ptr set with set_up()
   shared_ptr<DiscretisedDensity<3,float> > _density_sptr;
   shared_ptr<DataProcessor<DiscretisedDensity<3,float> > > _pre_data_processor_sptr;
 
-  virtual void set_defaults();
-  virtual void initialise_keymap();
+  void set_defaults() override;
+  void initialise_keymap() override;
 
  protected:
   //! ProjDataInfo set by set_up()

@@ -136,7 +136,7 @@ public:
 #endif
   
   //! virtual destructor, frees up any allocated memory
-  inline virtual ~Array();
+  inline ~Array() override;
 
   /*! @name functions returning full_iterators*/
   //@{
@@ -265,8 +265,6 @@ inline void sapyb(const T &a,
  (partial) specialisation for 1 dimensional arrays
  **************************************************/
 
-#ifndef BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
-
 //! The 1-dimensional (partial) specialisation of Array. 
 template <class elemT>
 class Array<1, elemT> : public NumericVectorWithOffset<elemT, elemT>
@@ -324,7 +322,7 @@ public:
   inline Array(const NumericVectorWithOffset<elemT,elemT> &il);
   
   //! virtual destructor
-  inline virtual ~Array();
+  inline ~Array() override;
 
   /*! @name functions returning full_iterators*/
   //@{
@@ -352,13 +350,13 @@ public:
   inline virtual void grow(const IndexRange<1>& range);
   
   // Array::grow initialises new elements to 0
-  inline virtual void grow(const int min_index, const int max_index);
+  inline void grow(const int min_index, const int max_index) override;
   
   //! Array::resize initialises new elements to 0
   inline virtual void resize(const IndexRange<1>& range);
   
   // Array::resize initialises new elements to 0
-  inline virtual void resize(const int min_index, const int max_index);
+  inline void resize(const int min_index, const int max_index) override;
   
   //! return sum of all elements
   inline elemT sum() const;
@@ -445,36 +443,6 @@ public:
   //@}
 };
 
-
-#else // BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
-
-/* 
-  If the compiler does not support partial template specialisation, 
-  we resort to multiple definitions of the class, for specific
-  types of elemT.
-  This of course means that if you want to use Array<n,elemT> for 'elemT'
-  anything else then the types used defined here, you'll have to add 
-  similar repetitions yourself...
-  Currently supported for signed char, float, int, short, unsigned short
-  */
-#define elemT signed char
-#include "stir/Array1d.h"
-#define elemT short
-#include "stir/Array1d.h"
-#define elemT unsigned short
-#include "stir/Array1d.h"
-#define elemT int
-#include "stir/Array1d.h"
-#define elemT float
-#include "stir/Array1d.h"
-END_NAMESPACE_STIR
-#include <complex>
-START_NAMESPACE_STIR
-#define __stir_Array1d_no_comparisons__
-#define elemT std::complex<float>
-#include "stir/Array1d.h"
-#undef elemT
-#endif // BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
 
 END_NAMESPACE_STIR
 
