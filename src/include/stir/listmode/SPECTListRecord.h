@@ -23,7 +23,6 @@
 #ifndef __stir_listmode_SPECTListRecord_H__
 #define __stir_listmode_SPECTListRecord_H__
 
-
 #include "stir/listmode/ListTime.h"
 #include "stir/listmode/ListRecord.h"
 #include "stir/listmode/SPECTListEvent.h"
@@ -52,7 +51,6 @@ public:
 
   virtual bool operator==(const SPECTListRecord& e2) const = 0;
   bool operator!=(const SPECTListRecord& e2) const { return !(*this == e2); }
-
 };
 
 END_NAMESPACE_STIR

@@ -36,8 +36,10 @@ class ProjDataInfo;
 class Succeeded;
 class ListGatingInput;
 
-template <typename coordT> class CartesianCoordinate3D;
-template <typename coordT> class LORAs2Points;
+template <typename coordT>
+class CartesianCoordinate3D;
+template <typename coordT>
+class LORAs2Points;
 
 //! Class for storing and using a coincidence event from a list mode file
 /*! \ingroup listmode
@@ -53,12 +55,9 @@ template <typename coordT> class LORAs2Points;
 class CListEvent : public ListEvent
 {
 public:
-
   //! Changes the event from prompt to delayed or vice versa
   /*! Default implementation just returns Succeeded::no. */
-  virtual 
-    Succeeded
-    set_prompt(const bool prompt = true);
+  virtual Succeeded set_prompt(const bool prompt = true);
 
 }; /*-coincidence event*/
 
@@ -70,7 +69,6 @@ public:
 class CListRecord : public virtual ListRecord
 {
 public:
-
 };
 
 class CListRecordWithGatingInput : public CListRecord, public ListRecordWithGatingInput

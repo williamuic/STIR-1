@@ -40,7 +40,6 @@
 #include "stir/IO/ECAT7DynamicDiscretisedDensityInputFileFormat.h"
 #endif
 
-
 #if 1
 #include "stir/IO/InputFileFormatRegistry.h"
 #include "stir/IO/InterfileImageInputFileFormat.h"
@@ -104,8 +103,6 @@ static InputStreamFromROOTFileForCylindricalPET::RegisterIt dummy60606;
 static InputStreamFromROOTFileForECATPET::RegisterIt dummy606062;
 #endif
 
-
-
 #ifdef HAVE_LLN_MATRIX
 START_NAMESPACE_ECAT
 START_NAMESPACE_ECAT6
@@ -118,7 +115,6 @@ static ECAT7ParametricDensityOutputFileFormat<ParametricVoxelsOnCartesianGridBas
 END_NAMESPACE_ECAT7
 END_NAMESPACE_ECAT
 #endif
-
 
 static RegisterInputFileFormat<InterfileImageInputFileFormat> idummy0(0);
 #ifdef HAVE_LLN_MATRIX
@@ -139,7 +135,6 @@ static RegisterInputFileFormat<InterfileDynamicDiscretisedDensityInputFileFormat
 static RegisterInputFileFormat<InterfileParametricDiscretisedDensityInputFileFormat> paradummy_intf(1);
 static RegisterInputFileFormat<MultiDynamicDiscretisedDensityInputFileFormat> dynim_dummy_multi(1);
 static RegisterInputFileFormat<MultiParametricDiscretisedDensityInputFileFormat> parim_dummy_multi(1);
-
 
 /*************************** listmode data **********************/
 #ifdef HAVE_LLN_MATRIX
