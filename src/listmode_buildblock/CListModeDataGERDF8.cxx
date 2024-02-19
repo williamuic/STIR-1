@@ -47,13 +47,10 @@ CListModeDataGERDF8(const std::string& listmode_filename)
       error("Error reading exam data from '" + listmode_filename + "' as GE RDF8");
     }
 
-  // initialise scanner_ptr before calling open_lm_file, as it is used in that function
-
-  warning("CListModeDataGERDF8: didn't read start time etc");
+  // initialise_proj_data_info()
   shared_ptr<Scanner> scanner_sptr(Scanner::get_scanner_from_name(exam_header.getScannerDescription()));
-  this->exam_info_sptr.reset(new ExamInfo);
 
-  this->proj_data_info_sptr.reset(
+  shared_ptr<ProjDataInfo> local_proj_data_info_sptr (
       ProjDataInfo::ProjDataInfoCTI(scanner_sptr,
 				    /*span=*/ 1,
 				    scanner_sptr->get_num_rings()-1,
@@ -61,6 +58,23 @@ CListModeDataGERDF8(const std::string& listmode_filename)
 				    scanner_sptr->get_max_num_non_arccorrected_bins(),
 				    /*arc_corrected =*/ false,
 				    /*tof_mash_factor = */  1));
+  {
+    nmtools::IO::ge::CRDF8ACQPARAMS acq_params_header;
+    acq_params_header.Read(listmode_filename);
+    local_proj_data_info_sptr->set_bed_position_horizontal(acq_params_header.acq_scan_params._tableLocation);
+#if 0 // HDF5 code uses
+    local_proj_data_info_sptr->set_bed_position_horizontal(
+      this->read_dataset_int32("/HeaderData/AcqParameters/LandmarkParameters/absTableLongitude")
+      / 10.F); /* units in RDF are 0.1 mm */
+    // local_proj_data_info_sptr->set_gantry_tilt(this->read_dataset_uint32("/HeaderData/AcqParameters/LandmarkParameters/gantryTilt"));
+    // /* units in RDF are 0.25 degrees, patient relative */
+    local_proj_data_info_sptr->set_bed_position_vertical(
+      this->read_dataset_int32("/HeaderData/AcqParameters/LandmarkParameters/tableElevation")
+      / 10.F); /* units in RDF are 0.1 mm */
+#endif
+  }
+
+  this->proj_data_info_sptr = local_proj_data_info_sptr;
 
   if (open_lm_file() == Succeeded::no)
     error(boost::format("CListModeDataGERDF8: error opening the first listmode file for filename %s") %
