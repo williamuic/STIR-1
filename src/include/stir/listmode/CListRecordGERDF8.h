@@ -77,7 +77,7 @@ class CListEventDataGERDF8
       det_pos.pos1().axial_coord() = hiXtalAxialID;
       det_pos.pos2().tangential_coord() = loXtalTransAxID;
       det_pos.pos2().axial_coord() = loXtalAxialID;
-      det_pos.timing_pos() = -get_tof_bin();
+      det_pos.timing_pos() = get_tof_bin();
     }
     else
     {
@@ -85,7 +85,7 @@ class CListEventDataGERDF8
       det_pos.pos1().axial_coord() = loXtalAxialID;
       det_pos.pos2().tangential_coord() = hiXtalTransAxID;
       det_pos.pos2().axial_coord() = hiXtalAxialID;
-      det_pos.timing_pos() = get_tof_bin();
+      det_pos.timing_pos() = -get_tof_bin();
     }
   }
   inline bool is_event() const
@@ -224,7 +224,9 @@ class CListRecordGERDF8 : public CListRecordWithGatingInput, public ListTime, pu
  CListRecordGERDF8(const shared_ptr<const ProjDataInfo>& proj_data_info_sptr, unsigned long first_time_stamp) :
   CListEventCylindricalScannerWithDiscreteDetectors(proj_data_info_sptr),
     first_time_stamp(first_time_stamp)
-    {}
+    {
+      this->num_rings = proj_data_info_sptr->get_scanner_ptr()->get_num_rings();
+    }
 
   bool is_time() const
   { 
@@ -276,7 +278,12 @@ dynamic_cast<CListRecordGERDF8 const *>(&e2) != 0 &&
   { return event_data.set_prompt(prompt); }
 
   virtual void get_detection_position(DetectionPositionPair<>& det_pos) const
-  { event_data.get_detection_position(det_pos); }
+  { 
+    event_data.get_detection_position(det_pos);
+    // need to swap from GE to STIR conventions
+    det_pos.pos1().axial_coord() = this->num_rings - 1 - det_pos.pos1().axial_coord();
+    det_pos.pos2().axial_coord() = this->num_rings - 1 - det_pos.pos2().axial_coord();
+  }
 
   //! This routine sets in a coincidence event from detector "indices"
   virtual void set_detection_position(const DetectionPositionPair<>&)
@@ -327,6 +334,7 @@ private:
   BOOST_STATIC_ASSERT(sizeof(GatingType)==6); 
 
   unsigned long first_time_stamp;
+  int num_rings;
 };
 
 
