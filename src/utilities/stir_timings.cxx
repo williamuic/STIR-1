@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2023 University College London
+    Copyright (C) 2023, 2024 University College London
     This file is part of STIR.
 
     SPDX-License-Identifier: Apache-2.0
@@ -34,6 +34,10 @@
 #endif
 #include "stir/recon_buildblock/ProjMatrixByBinUsingRayTracing.h"
 #include "stir/recon_buildblock/PoissonLogLikelihoodWithLinearModelForMeanAndProjData.h"
+#include "stir/recon_buildblock/RelativeDifferencePrior.h"
+#ifdef STIR_WITH_CUDA
+#  include "stir/recon_buildblock/CUDA/CudaRelativeDifferencePrior.h"
+#endif
 //#include "stir/OSMAPOSL/OSMAPOSLReconstruction.h"
 #include "stir/recon_buildblock/distributable_main.h"
 #include "stir/warning.h"
@@ -50,9 +54,10 @@ static void
 print_usage_and_exit()
 {
   std::cerr << "\nUsage:\nstir_timings [--name some_string] [--threads num_threads] [--runs num_runs]\\\n"
-            << "\t[--skip-PP 1] [--skip-PMRT 1]\\\n"
+            << "\t[--skip-BB 1] [--skip-PP 1] [--skip-PMRT 1] [--skip-priors 1]\\\n"
             << "\t[--image image_filename]\\\n"
             << "\t--template-projdata template_proj_data_filename\n\n"
+            << "skip BB: basic building blocks; PP: Parallelproj; PMRT: ray-tracing matrix; priors: prior timing\n\n"
             << "Timings are reported to stdout as:\n"
             << "name\ttiming_name\tCPU_time_in_ms\twall-clock_time_in_ms\n";
   std::exit(EXIT_FAILURE);
@@ -68,13 +73,17 @@ public:
   //! Use as prefix for all output
   std::string name;
   // variables that select timings
-  bool skip_PMRT;
-  bool skip_PP;
-
+  bool skip_BB;     //! skip basic building blocks
+  bool skip_PMRT;   //! skip ProjMatrixByBinUsingRayTracing
+  bool skip_PP;     //! skip Parallelproj
+  bool skip_priors; //! skip GeneralisedPrior
   // variables used for running timings
-  shared_ptr<DiscretisedDensity<3, float>> image_sptr;
+  shared_ptr<VoxelsOnCartesianGrid<float>> image_sptr;
   shared_ptr<ProjData> output_proj_data_sptr;
   shared_ptr<ProjDataInMemory> mem_proj_data_sptr;
+  shared_ptr<ProjDataInMemory> mem_proj_data_sptr2;
+  std::vector<float> v1;
+  std::vector<float> v2;
   shared_ptr<ProjectorByBinPair> projectors_sptr;
   shared_ptr<ProjectorByBinPairUsingProjMatrixByBin> pmrt_projectors_sptr;
 #ifdef STIR_WITH_Parallelproj_PROJECTOR
@@ -84,11 +93,12 @@ public:
   shared_ptr<ExamInfo> exam_info_sptr;
   shared_ptr<PoissonLogLikelihoodWithLinearModelForMeanAndProjData<DiscretisedDensity<3, float>>> objective_function_sptr;
 
+  shared_ptr<GeneralisedPrior<DiscretisedDensity<3, float>>> prior_sptr;
   // basic methods
   Timings(const std::string& image_filename, const std::string& template_proj_data_filename)
   {
     if (!image_filename.empty())
-      this->image_sptr = read_from_file<DiscretisedDensity<3, float>>(image_filename);
+      this->image_sptr = read_from_file<VoxelsOnCartesianGrid<float>>(image_filename);
 
     if (!template_proj_data_filename.empty())
       this->template_proj_data_sptr = ProjData::read_from_file(template_proj_data_filename);
@@ -107,10 +117,62 @@ public:
     std::this_thread::sleep_for(std::chrono::milliseconds(1123));
   }
 
+  template <class T>
+  static void copy_add(T& t)
+  {
+    T c(t);
+    c += t;
+  }
+
+  template <class T>
+  static void copy_mult(T& t)
+  {
+    T c(t);
+    c *= t;
+  }
+
   void copy_image()
   {
     auto im = this->image_sptr->clone();
     delete im;
+  }
+
+  void copy_add_image()
+  {
+    copy_add(*this->image_sptr);
+  }
+
+  void copy_mult_image()
+  {
+    copy_mult(*this->image_sptr);
+  }
+
+  void copy_std_vector()
+  {
+    std::copy(this->v1.begin(), this->v1.end(), this->v2.begin());
+  }
+  void create_std_vector()
+  {
+    std::vector<float> tmp(this->v1.size());
+    tmp[0] = 1; // assign something to avoid compiler warnings of unused variable
+  }
+  //! create proj_data in memory object
+  void create_proj_data_in_mem_no_init()
+  {
+    ProjDataInMemory tmp(this->template_proj_data_sptr->get_exam_info_sptr(),
+                         this->template_proj_data_sptr->get_proj_data_info_sptr(),
+                         /* initialise*/ false);
+  }
+  void create_proj_data_in_mem_init()
+  {
+    ProjDataInMemory tmp(this->template_proj_data_sptr->get_exam_info_sptr(),
+                         this->template_proj_data_sptr->get_proj_data_info_sptr(),
+                         /* initialise*/ true);
+  }
+  //! call ProjDataInMemory::fill(ProjDataInMemory&)
+  void copy_only_proj_data_mem_to_mem()
+  {
+    this->mem_proj_data_sptr2->fill(*this->mem_proj_data_sptr);
   }
 
   //! copy from output_proj_data_sptr to new Interfile file
@@ -149,6 +211,16 @@ public:
     tmp.fill(*this->mem_proj_data_sptr);
   }
 
+  void copy_add_proj_data_mem()
+  {
+    copy_add(*this->mem_proj_data_sptr);
+  }
+
+  void copy_mult_proj_data_mem()
+  {
+    copy_mult(*this->mem_proj_data_sptr);
+  }
+
   void projector_setup()
   {
     this->projectors_sptr->set_up(this->template_proj_data_sptr->get_proj_data_info_sptr(), this->image_sptr);
@@ -182,6 +254,21 @@ public:
     this->objective_function_sptr->compute_sub_gradient_without_penalty_plus_sensitivity(*im, *this->image_sptr, 0);
     delete im;
   }
+
+  void prior_grad()
+  {
+    auto im = this->image_sptr->clone();
+    this->prior_sptr->compute_gradient(*im, *this->image_sptr);
+    delete im;
+  }
+
+  void prior_value()
+  {
+    auto im = this->image_sptr->clone();
+    auto v = this->prior_sptr->compute_value(*this->image_sptr);
+    v += 2; // to avoid compiler warning about unused variable
+    delete im;
+  }
 };
 
 void
@@ -201,12 +288,32 @@ Timings::run_all(const unsigned runs)
 {
   this->init();
   // this->run_it(&Timings::sleep, "sleep", runs*1);
-  this->run_it(&Timings::copy_image, "copy_image", runs * 20);
   this->output_proj_data_sptr->fill(1.F);
-  this->run_it(&Timings::copy_proj_data_mem_to_mem, "copy_proj_data_mem_to_mem", runs * 2);
-  this->run_it(&Timings::copy_proj_data_mem_to_file, "copy_proj_data_mem_to_file", runs * 2);
-  this->run_it(&Timings::copy_proj_data_file_to_mem, "copy_proj_data_file_to_mem", runs * 2);
-  this->run_it(&Timings::copy_proj_data_file_to_file, "copy_proj_data_file_to_file", runs * 2);
+  if (!this->skip_BB)
+    {
+      this->mem_proj_data_sptr2
+          = std::make_shared<ProjDataInMemory>(this->exam_info_sptr, this->template_proj_data_sptr->get_proj_data_info_sptr());
+      this->v1.resize(this->template_proj_data_sptr->size_all());
+      this->v2.resize(this->template_proj_data_sptr->size_all());
+      this->run_it(&Timings::copy_image, "copy_image", runs * 20);
+      this->run_it(&Timings::copy_add_image, "copy_add_image", runs * 20);
+      this->run_it(&Timings::copy_mult_image, "copy_mult_image", runs * 20);
+      // reference timings: std::vector should be fast
+      this->run_it(&Timings::create_std_vector, "create_vector_of_size_projdata", runs * 2);
+      this->run_it(&Timings::copy_std_vector, "copy_std_vector_of_size_projdata", runs * 2);
+      v1.clear();
+      v2.clear();
+      this->run_it(&Timings::create_proj_data_in_mem_no_init, "create_proj_data_in_mem_no_init", runs * 2);
+      this->run_it(&Timings::create_proj_data_in_mem_init, "create_proj_data_in_mem_init", runs * 2);
+      this->run_it(&Timings::copy_only_proj_data_mem_to_mem, "copy_proj_data_mem_to_mem", runs * 2);
+      this->run_it(&Timings::copy_proj_data_mem_to_mem, "create_copy_proj_data_mem_to_mem", runs * 2);
+      this->mem_proj_data_sptr2.reset(); // no longer used
+      this->run_it(&Timings::copy_proj_data_mem_to_file, "create_copy_proj_data_mem_to_file", runs * 2);
+      this->run_it(&Timings::copy_proj_data_file_to_mem, "create_copy_proj_data_file_to_mem", runs * 2);
+      this->run_it(&Timings::copy_proj_data_file_to_file, "create_copy_proj_data_file_to_file", runs * 2);
+      this->run_it(&Timings::copy_add_proj_data_mem, "copy_add_proj_data_mem", runs * 2);
+      this->run_it(&Timings::copy_mult_proj_data_mem, "copy_mult_proj_data_mem", runs * 2);
+    }
   this->objective_function_sptr.reset(new PoissonLogLikelihoodWithLinearModelForMeanAndProjData<DiscretisedDensity<3, float>>);
   this->objective_function_sptr->set_proj_data_sptr(this->mem_proj_data_sptr);
   // this->objective_function.set_num_subsets(proj_data_sptr->get_num_views()/2);
@@ -241,6 +348,26 @@ Timings::run_all(const unsigned runs)
     }
 #endif
   // write_to_file("my_timings_backproj.hv", *this->image_sptr);
+
+  if (!skip_priors)
+    {
+      {
+        this->prior_sptr = std::make_shared<RelativeDifferencePrior<float>>(false, 1.F, 2.F, 0.1F);
+        this->prior_sptr->set_up(this->image_sptr);
+        this->run_it(&Timings::prior_value, "RDP_value", runs * 10);
+        this->run_it(&Timings::prior_grad, "RDP_grad", runs * 10);
+        this->prior_sptr = nullptr;
+      }
+#ifdef STIR_WITH_CUDA
+      {
+        this->prior_sptr = std::make_shared<CudaRelativeDifferencePrior<float>>(false, 1.F, 2.F, 0.1F);
+        this->prior_sptr->set_up(this->image_sptr);
+        this->run_it(&Timings::prior_value, "Cuda_RDP_value", runs * 30);
+        this->run_it(&Timings::prior_grad, "Cuda_RDP_grad", runs * 30);
+        this->prior_sptr = nullptr;
+      }
+#endif
+    }
 }
 
 void
@@ -321,8 +448,10 @@ main(int argc, char** argv)
   std::string prog_name = argv[0];
   unsigned num_runs = 3;
   int num_threads = get_default_num_threads();
+  bool skip_BB = false;
   bool skip_PMRT = false;
   bool skip_PP = false;
+  bool skip_priors = false;
   // prefix output with this string
   std::string name;
 
@@ -340,10 +469,14 @@ main(int argc, char** argv)
         num_runs = std::atoi(argv[1]);
       else if (!strcmp(argv[0], "--threads"))
         num_threads = std::atoi(argv[1]);
+      else if (!strcmp(argv[0], "--skip-BB"))
+        skip_BB = std::atoi(argv[1]) != 0;
       else if (!strcmp(argv[0], "--skip-PMRT"))
         skip_PMRT = std::atoi(argv[1]) != 0;
       else if (!strcmp(argv[0], "--skip-PP"))
         skip_PP = std::atoi(argv[1]) != 0;
+      else if (!strcmp(argv[0], "--skip-priors"))
+        skip_priors = std::atoi(argv[1]) != 0;
       else
         print_usage_and_exit();
       argv += 2;
@@ -358,8 +491,10 @@ main(int argc, char** argv)
 
   Timings timings(image_filename, template_proj_data_filename);
   timings.name = name;
+  timings.skip_BB = skip_BB;
   timings.skip_PMRT = skip_PMRT;
   timings.skip_PP = skip_PP;
+  timings.skip_priors = skip_priors;
 
   timings.run_all(num_runs);
   return EXIT_SUCCESS;

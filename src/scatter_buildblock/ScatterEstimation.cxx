@@ -85,7 +85,7 @@ ScatterEstimation::set_defaults()
   this->output_scatter_estimate_prefix = "";
   this->output_additive_estimate_prefix = "";
   this->num_scatter_iterations = 5;
-  this->min_scale_value = 0.4f;
+  this->min_scale_value = 0.05f;
   this->max_scale_value = 100.f;
   this->half_filter_width = 3;
 }
@@ -430,6 +430,18 @@ ScatterEstimation::set_normalisation_sptr(const shared_ptr<BinNormalisation> arg
   this->_already_setup = false;
   this->norm_3d_sptr = arg;
   this->multiplicative_binnorm_sptr.reset();
+}
+
+void
+ScatterEstimation::set_recompute_mask_image(bool arg)
+{
+  this->recompute_mask_image = arg;
+}
+
+void
+ScatterEstimation::set_recompute_mask_projdata(bool arg)
+{
+  this->recompute_mask_projdata = arg;
 }
 
 bool
