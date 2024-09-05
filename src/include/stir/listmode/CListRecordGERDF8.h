@@ -1,7 +1,7 @@
 /*
     Copyright (C) 2003-2011 Hammersmith Imanet Ltd (CListRecordECAT.h)
     Copyright (C) 2013 University College London (major mods for GE Dimension data)
-    Copyright (C) 2023 University College London (RDF8)
+    Copyright (C) 2023, 2024 University College London (RDF8)
     This file is part of STIR.
 
     SPDX-License-Identifier: Apache-2.0
@@ -18,6 +18,9 @@
 
 #ifndef __stir_listmode_CListRecordGERDF8_H__
 #define __stir_listmode_CListRecordGERDF8_H__
+
+// disable when matching with STIR coordinates
+#define MATCH_PETTOOLBOX
 
 #include "stir/listmode/CListRecord.h"
 #include "stir/listmode/ListTime.h"
@@ -225,7 +228,11 @@ class CListRecordGERDF8 : public CListRecordWithGatingInput, public ListTime, pu
   CListEventCylindricalScannerWithDiscreteDetectors(proj_data_info_sptr),
     first_time_stamp(first_time_stamp)
     {
+#ifdef MATCH_PETTOOLBOX
+      this->num_detectors_per_ring = proj_data_info_sptr->get_scanner_ptr()->get_num_detectors_per_ring();
+#else
       this->num_rings = proj_data_info_sptr->get_scanner_ptr()->get_num_rings();
+#endif
     }
 
   bool is_time() const
@@ -280,9 +287,14 @@ dynamic_cast<CListRecordGERDF8 const *>(&e2) != 0 &&
   virtual void get_detection_position(DetectionPositionPair<>& det_pos) const
   { 
     event_data.get_detection_position(det_pos);
+#ifdef MATCH_PETTOOLBOX
+    det_pos.pos1().tangential_coord() = this->num_detectors_per_ring - 1 - det_pos.pos1().tangential_coord();
+    det_pos.pos2().tangential_coord() = this->num_detectors_per_ring - 1 - det_pos.pos2().tangential_coord();
+#else
     // need to swap from GE to STIR conventions
     det_pos.pos1().axial_coord() = this->num_rings - 1 - det_pos.pos1().axial_coord();
     det_pos.pos2().axial_coord() = this->num_rings - 1 - det_pos.pos2().axial_coord();
+#endif
   }
 
   //! This routine sets in a coincidence event from detector "indices"
@@ -334,7 +346,11 @@ private:
   BOOST_STATIC_ASSERT(sizeof(GatingType)==6); 
 
   unsigned long first_time_stamp;
+#ifdef MATCH_PETTOOLBOX
+  int num_detectors_per_ring;
+#else
   int num_rings;
+#endif
 };
 
 
